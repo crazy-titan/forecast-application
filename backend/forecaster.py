@@ -172,14 +172,18 @@ def run_pipeline(
         try:
             sf_base = StatsForecast(models=[Naive(), SeasonalNaive(season_length=season_length), HistoricAverage()], freq=freq, n_jobs=-1 if not ON_RENDER else 1)
             cv_base = sf_base.cross_validation(h=horizon, df=train_ai, n_windows=actual_windows, step_size=horizon, refit=True)
+            
+            if "unique_id" not in cv_base.columns: cv_base = cv_base.reset_index()
+            if "unique_id" not in cv_df.columns: cv_df = cv_df.reset_index()
+            
             cols_to_use = cv_base.columns.difference(cv_df.columns).tolist() + ["unique_id", "ds", "cutoff"]
             cv_df = pd.merge(cv_df, cv_base[cols_to_use], on=["unique_id", "ds", "cutoff"], how="left")
             
             # Re-update names so evaluation loop catches them
             present_base = [c for c in cv_base.columns if c not in ["unique_id", "ds", "cutoff", "y"]]
             all_model_names.extend(present_base)
-        except Exception:
-            pass
+        except Exception as e:
+            results["errors"].append(f"Baseline Evaluation Bug: {str(e)[:150]}")
         
         if "unique_id" not in cv_df.columns:
             cv_df = cv_df.reset_index()
