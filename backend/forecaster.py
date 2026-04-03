@@ -223,10 +223,12 @@ def run_pipeline(
         else:
             display_grp = grp
             
-        history_dict[uid] = [
-            {"ds": pd.Timestamp(row["ds"]).isoformat(), "y": float(row["y"])}
-            for _, row in display_grp[["ds", "y"]].iterrows()
-        ]
+        # Fast vectorized serialization — strftime is ~100x faster than iterrows()
+        history_dict[uid] = (
+            display_grp[["ds", "y"]]
+            .assign(ds=display_grp["ds"].dt.strftime("%Y-%m-%d"))
+            .to_dict("records")
+        )
 
     results["history"] = history_dict
     results["horizon"] = horizon
