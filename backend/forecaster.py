@@ -148,40 +148,26 @@ def run_pipeline(
         actual_windows = min(n_windows, max(1, len(train)//(horizon*2)))
         all_model_names = [m.alias if hasattr(m,'alias') else m.__class__.__name__ for m in all_models]
         
-        # Re-instantiate models for CV. Skip Baselines to avoid 'forward' attribute errors entirely.
+        # Turbo Mode: Include Baselines but ensure they don't block the AI
         import copy
         cv_models = []
         for m in all_models:
-            name = m.__class__.__name__
-            if name not in ["Naive", "SeasonalNaive", "HistoricAverage"]:
-                cv_models.append(copy.deepcopy(m))
+            cv_models.append(copy.deepcopy(m))
 
         if not cv_models:
-            raise ValueError("No advanced models available for CV backtest.")
+            raise ValueError("No models available for CV backtest.")
 
         sf_cv = StatsForecast(models=cv_models, freq=freq, n_jobs=-1 if not ON_RENDER else 1)
-        # Using refit=False is the most critical speed optimization for Cross-Validation.
-        # It trains once and moves the window, instead of retraining at every step.
-        cv_df = sf_cv.cross_validation(h=horizon, df=train_ai, n_windows=actual_windows, step_size=horizon, refit=False)
-        
-        # Baselines run separately. Setting refit=False here as well for speed.
         try:
-            sf_base = StatsForecast(models=[Naive(), SeasonalNaive(season_length=season_length), HistoricAverage()], freq=freq, n_jobs=-1 if not ON_RENDER else 1)
-            cv_base = sf_base.cross_validation(h=horizon, df=train_ai, n_windows=actual_windows, step_size=horizon, refit=False)
-            
-            if "unique_id" not in cv_base.columns: cv_base = cv_base.reset_index()
-            if "unique_id" not in cv_df.columns: cv_df = cv_df.reset_index()
-            
-            cols_to_use = cv_base.columns.difference(cv_df.columns).tolist() + ["unique_id", "ds", "cutoff"]
-            cv_df = pd.merge(cv_df, cv_base[cols_to_use], on=["unique_id", "ds", "cutoff"], how="left")
-            
-            # Re-update names so evaluation loop catches them. Ensure we avoid duplicates.
-            present_base = [c for c in cv_base.columns if c not in ["unique_id", "ds", "cutoff", "y"]]
-            for m_name in present_base:
-                if m_name not in all_model_names:
-                    all_model_names.append(m_name)
+            # Using refit=False is the most critical speed optimization for Cross-Validation.
+            # It trains once and moves the window, instead of retraining at every step.
+            cv_df = sf_cv.cross_validation(h=horizon, df=train_ai, n_windows=actual_windows, step_size=horizon, refit=False)
         except Exception as e:
-            results["errors"].append(f"Baseline Evaluation Bug: {str(e)[:150]}")
+            results["errors"].append(f"Model Evaluation Sync Warning: {str(e)[:150]}")
+            cv_df = None
+        
+        if cv_df is None or cv_df.empty:
+            raise ValueError("Cross-validation produced no results.")
         
         if "unique_id" not in cv_df.columns:
             cv_df = cv_df.reset_index()
@@ -192,6 +178,7 @@ def run_pipeline(
         for m in all_model_names:
             if m in cv_df.columns and m not in seen:
                 unique_models.append(m)
+                seen.add(m)
                 seen.add(m)
 
         if unique_models:
