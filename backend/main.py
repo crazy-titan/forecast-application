@@ -157,26 +157,37 @@ async def upload(file: UploadFile = File(...), session_id: str = Form(...)):
         raise HTTPException(400, err)
         
     try:
-        # ── 2. Detailed CSV Parsing ─────────────────────────────────────────
-        df = pd.read_csv(io.BytesIO(content))
-        if df.empty:
+        # ── 2. Detailed CSV Parsing via Bytes (RAM GUARD) ──────────────────
+        sess = get_session(session_id)
+        path = os.path.join(sess["folder"], "data.csv")
+        
+        # Save raw bytes to disk instantly, preventing Pandas from inflating RAM
+        with open(path, "wb") as f:
+            f.write(content)
+            
+        # Parse only the top header to define columns
+        try:
+            df_preview = pd.read_csv(io.BytesIO(content[:50000]), nrows=10)
+        except:
+            df_preview = pd.read_csv(path, nrows=10)
+            
+        if df_preview.empty:
             raise HTTPException(400, "The CSV file was read successfully but contains no data (empty file).")
+            
+        n_rows = content.count(b'\n')
     except pd.errors.ParserError as pe:
         raise HTTPException(400, f"CSV structure error: Your file is malformatted or has irregular column counts. Details: {str(pe)[:100]}...")
     except Exception as e:
         raise HTTPException(400, f"Could not process CSV: {str(e)}")
     
-    sess = get_session(session_id)
-    path = os.path.join(sess["folder"], "data.csv")
-    df.to_csv(path, index=False)
     update_session(session_id, "df_path", path)
     update_session(session_id, "dataset_name", file.filename)
     
-    cols = list(df.columns)
+    cols = list(df_preview.columns)
     return {
         "columns": cols,
-        "n_rows": len(df),
-        "preview": df.head(5).fillna("").to_dict(orient="records"),
+        "n_rows": n_rows,
+        "preview": df_preview.head(5).fillna("").to_dict(orient="records"),
         "suggestions": {
             "date_col": next((c for c in cols if c.lower() in ["date","ds","timestamp"]), cols[0]),
             "value_col": next((c for c in cols if c.lower() in ["y","value","demand"]), cols[1] if len(cols)>1 else cols[0]),
@@ -255,13 +266,34 @@ def forecast(
     if not path or not mapping or not validation:
         raise HTTPException(400, "Incomplete session. Upload and map first.")
     
-    # ── 3. SELECTIVE LOADING: Only load the columns needed for math ──────
-    # Electricity datasets often have dozens of unused columns. Loading them all OOMs.
+    # ── 3. SELECTIVE LOADING & CHUNKING (OOM SHIELD) ─────────────────────
     use_cols = [mapping["date_col"], mapping["value_col"]]
     if mapping.get("id_col"):
         use_cols.append(mapping["id_col"])
     
-    df = pd.read_csv(path, usecols=use_cols)
+    # Render's 512MB RAM will immediately crash if pandas loads millions of rows.
+    # We chunk large files, discarding old history instantly and keeping only the tail.
+    file_size = os.path.getsize(path)
+    is_huge = file_size > 2 * 1024 * 1024 # Larger than 2MB is treated as massive
+
+    if is_huge:
+        chunks = []
+        for chunk in pd.read_csv(path, usecols=use_cols, chunksize=50000):
+            if mapping.get("id_col"):
+                c_tail = chunk.groupby(mapping["id_col"]).tail(2000)
+            else:
+                c_tail = chunk.tail(2000)
+            chunks.append(c_tail)
+            gc.collect()
+            
+        df = pd.concat(chunks, ignore_index=True)
+        if mapping.get("id_col"):
+            df = df.groupby(mapping["id_col"]).tail(2000).reset_index(drop=True)
+        else:
+            df = df.tail(2000).reset_index(drop=True)
+    else:
+        df = pd.read_csv(path, usecols=use_cols)
+        
     gc.collect()
     info = validation.get("info", {})
     freq = info.get("freq", "D")
@@ -276,16 +308,6 @@ def forecast(
     sel = [s.strip() for s in selected_series.split(",")] if selected_series else None
     
     try:
-        # ── 4. MEMORY GUARD PRE-TRUNCATION ──────────────────────────────────
-        # If the dataset is massive, truncate it BEFORE running regex in build_sf_dataframe
-        is_huge = len(df) > 50000
-        if is_huge:
-            if mapping.get("id_col"):
-                df = df.groupby(mapping["id_col"]).tail(2000).reset_index(drop=True)
-            else:
-                df = df.tail(2000).reset_index(drop=True)
-            gc.collect()
-
         df_sf = build_sf_dataframe(df, mapping["date_col"], mapping["value_col"], mapping.get("id_col"), sel)
         if df_sf.empty or df_sf["unique_id"].nunique() == 0:
             raise HTTPException(400, "No valid time series found. Check your ID column or date column.")
