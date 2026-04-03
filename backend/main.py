@@ -9,8 +9,9 @@ import traceback
 import gc
 import pandas as pd
 import numpy as np
-from typing import Optional, Dict, Any
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Query
+from typing import Optional, Dict, Any, Union
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Query, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -82,6 +83,20 @@ def deep_clean_json(obj):
 
 # --- FastAPI app initialization ---
 app = FastAPI(title="ChainCast API", description="Supply Chain Demand Forecasting", version="1.0.0")
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = exc.errors()
+    error_msgs = []
+    for error in errors:
+        loc = "->".join([str(l) for l in error.get("loc", [])])
+        msg = error.get("msg", "")
+        error_msgs.append(f"Field '{loc}': {msg}")
+    
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "Diagnostic Report: " + " | ".join(error_msgs)}
+    )
 
 app.add_middleware(
     CORSMiddleware,
