@@ -320,7 +320,11 @@ def forecast(
                 "P": to_int(P,2), "D": to_int(D,1), "Q": to_int(Q,2)
             }
         
-        results = run_pipeline(df_sf, freq, final_sl, final_h, n_windows_val, mode=mode, manual_params=manual_params, force_massive=is_huge)
+        results = run_pipeline(df_sf, freq, final_sl, final_h, n_windows_val, mode=mode, manual_params=manual_params)
+        
+        if is_huge:
+            if "errors" not in results: results["errors"] = []
+            results["errors"].append("High-Performance Mode: To run full AI analysis on this massive dataset without crashing the server, we strictly evaluated the most recent 2,000 observations per series.")
         
         def extract_forecast_values(r):
             prob = r.get("prob_preds")
