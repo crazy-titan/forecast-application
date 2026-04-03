@@ -16,18 +16,30 @@
 </head>
 
 <body>
+    <!-- Global Gradients -->
+    <svg width="0" height="0" style="position:absolute; display:none;">
+      <defs>
+        <linearGradient id="logoGradient" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#00E5FF" />
+          <stop offset="100%" stop-color="#9D4EDD" />
+        </linearGradient>
+      </defs>
+    </svg>
+
     <header class="site-header">
         <div class="header-inner">
             <div class="logo">
-                <span class="logo-icon">⛓️</span>
-                <span>Chain<span class="logo-accent">Cast</span></span>
+                <span class="logo-icon">
+                    <svg viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" stroke="url(#logoGradient)" stroke-width="2" fill="none"/></svg>
+                </span>
+                <span>Chain<span class="grad-text">Cast</span></span>
             </div>
             <nav class="header-nav">
-                <a href="#data-section">Data</a>
-                <a href="#results-section">Forecast</a>
-                <a href="#theory-section">Theory</a>
+                <a href="#data-section" data-tooltip="Step 1: Upload your CSV file or pick a sample dataset to begin.">Data Source</a>
+                <a href="#results-section" data-tooltip="Jump to your forecast charts and supply chain metrics after running a forecast.">Forecast Map</a>
+                <a href="#theory-section" data-tooltip="See a plain-English explanation of the 7 statistical steps ChainCast performed on your data.">Architecture</a>
             </nav>
-            <button class="theme-toggle" id="themeToggle" aria-label="Dark mode">🌙</button>
+            <!-- Removed Theme Toggle -->
         </div>
     </header>
 
@@ -60,12 +72,14 @@
                 <p>Upload a CSV file or pick a built-in sample</p>
             </div>
             <div class="tab-row">
-                <button class="tab active" data-tab="upload">Upload CSV</button>
-                <button class="tab" data-tab="samples">Sample datasets</button>
+                <button class="tab active" data-tab="upload" data-tooltip="Upload your own CSV file. Any column names work — you'll map them in the next step.">Upload CSV</button>
+                <button class="tab" data-tab="samples" data-tooltip="Try one of our pre-loaded real-world datasets instantly — no upload required.">Sample datasets</button>
             </div>
             <div class="tab-panel active" id="tab-upload">
-                <div class="upload-zone" id="uploadZone">
-                    <div class="upload-icon">☁️</div>
+                <div class="upload-zone glass-panel" id="uploadZone" data-tooltip="Drag and drop any CSV file here, or click to browse. Max 10 MB. Any column structure is accepted.">
+                    <div class="upload-icon">
+                        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
                     <div class="upload-text"><strong>Drop your CSV here</strong><span>or click to browse</span></div>
                     <div class="upload-hint">Maximum 10 MB · CSV format · any column names</div>
                     <input type="file" id="fileInput" accept=".csv" style="display:none" />
@@ -107,20 +121,20 @@
                 <div class="mapping-form">
                     <div class="map-row">
                         <label>Date column <span class="req">*</span></label>
-                        <select id="dateColSelect"></select>
+                        <select id="dateColSelect" data-tooltip="Pick the column that holds timestamps or dates (e.g., '2020-01-01'). Required for time-series forecasting."></select>
                         <span class="map-hint">Column containing timestamps or dates</span>
                     </div>
                     <div class="map-row">
                         <label>Value column <span class="req">*</span></label>
-                        <select id="valueColSelect"></select>
+                        <select id="valueColSelect" data-tooltip="Pick the number column you want to predict — this is your demand, sales, or inventory figure."></select>
                         <span class="map-hint">Column to forecast (demand, sales, units, etc.)</span>
                     </div>
                     <div class="map-row">
                         <label>Series ID column <span class="opt">(optional)</span></label>
-                        <select id="idColSelect"></select>
+                        <select id="idColSelect" data-tooltip="If your file has multiple products or SKUs in one column (e.g., 'SKU_A', 'SKU_B'), select it here. Leave empty for a single series."></select>
                         <span class="map-hint">For multiple products/SKUs – leave empty for a single series</span>
                     </div>
-                    <button class="btn-primary" id="confirmMappingBtn">Confirm mapping →</button>
+                    <button class="btn-primary" id="confirmMappingBtn" data-tooltip="Confirm your column choices and move to the forecast configuration step.">Confirm mapping →</button>
                 </div>
             </div>
         </div>
@@ -137,13 +151,17 @@
             <div class="detected-banner" id="detectedBanner"></div>
             <div class="mode-toggle-wrap">
                 <div class="mode-toggle">
-                    <button class="mode-btn active" data-mode="auto" id="modeAuto">
-                        <span class="mode-icon">🤖</span>
-                        <span class="mode-label">Auto mode</span>
-                        <span class="mode-sub">Let the system decide</span>
+                    <button class="mode-btn active" data-mode="auto" id="modeAuto" data-tooltip="Recommended. ChainCast automatically tests 4 models and selects the best one for your data. No configuration needed.">
+                        <span class="mode-icon">
+                            <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="currentColor"/></svg>
+                        </span>
+                        <span class="mode-label">AutoPilot Engine</span>
+                        <span class="mode-sub">Automated algorithmic optimization</span>
                     </button>
-                    <button class="mode-btn" data-mode="manual" id="modeManual">
-                        <span class="mode-icon">⚙️</span>
+                    <button class="mode-btn" data-mode="manual" id="modeManual" data-tooltip="Advanced mode. Manually set ARIMA parameters (p, d, q) and seasonal parameters (P, D, Q). Only for users familiar with time-series statistics.">
+                        <span class="mode-icon">
+                            <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        </span>
                         <span class="mode-label">Manual mode</span>
                         <span class="mode-sub">Full parameter control</span>
                     </button>
@@ -156,6 +174,55 @@
                 <div class="auto-item"><span class="ai">Models compared</span><span class="av">4</span></div>
             </div>
             <div class="manual-controls hidden" id="manualControls">
+                <!-- Manual Mode Parameter Guide -->
+                <div class="manual-guide" id="manualGuide">
+                    <div class="guide-header">
+                        <svg viewBox="0 0 24 24" class="guide-icon"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2zm0 2a8 8 0 100 16A8 8 0 0012 4zm0 3a1 1 0 011 1v5a1 1 0 01-2 0V8a1 1 0 011-1zm0 9a1.25 1.25 0 110-2.5A1.25 1.25 0 0112 16z" fill="currentColor"/></svg>
+                        <strong>Manual Mode — Parameter Reference Guide</strong>
+                    </div>
+                    <p class="guide-intro">Not sure what values to enter? Here's a plain-English guide to every parameter below.</p>
+                    <div class="guide-grid">
+                        <div class="guide-item guide-horizon">
+                            <div class="guide-param">Horizon</div>
+                            <div class="guide-explain">How many future steps to predict.<br><span class="guide-rec">Safe range: 7–90. Start with 14 (2 weeks of daily data).</span></div>
+                        </div>
+                        <div class="guide-item guide-season">
+                            <div class="guide-param">Season Length</div>
+                            <div class="guide-explain">The repeating cycle in your data.<br><span class="guide-rec">Daily data = 7 (weekly) · Monthly data = 12 (yearly) · Hourly = 24</span></div>
+                        </div>
+                        <div class="guide-item">
+                            <div class="guide-param">CV Windows</div>
+                            <div class="guide-explain">How many times the model self-tests its accuracy before forecasting.<br><span class="guide-rec">Keep at 5. Increase to 10 for more reliable error metrics.</span></div>
+                        </div>
+                        <div class="guide-item">
+                            <div class="guide-param">p — AR Order</div>
+                            <div class="guide-explain">How many past time steps the model looks at to make its next prediction (its "memory").<br><span class="guide-rec">Recommended: 1–3. Setting to 0 disables this component.</span></div>
+                        </div>
+                        <div class="guide-item">
+                            <div class="guide-param">d — Differencing</div>
+                            <div class="guide-explain">How many times the data is "de-trended" to make it stable for modelling.<br><span class="guide-rec">Recommended: 1 (most data has a trend). Use 0 if data is already flat/stable.</span></div>
+                        </div>
+                        <div class="guide-item">
+                            <div class="guide-param">q — MA Order</div>
+                            <div class="guide-explain">How much the model learns from its own past prediction errors.<br><span class="guide-rec">Recommended: 1–2. Setting all three (p, d, q) to 0 will cause a CV error.</span></div>
+                        </div>
+                        <div class="guide-item">
+                            <div class="guide-param">P, D, Q (Seasonal)</div>
+                            <div class="guide-explain">Same as p, d, q but applied to the seasonal cycle you set above.<br><span class="guide-rec">Defaults (P=1, D=1, Q=1) work for most seasonal datasets.</span></div>
+                        </div>
+                        <div class="guide-item">
+                            <div class="guide-param">Lead Time</div>
+                            <div class="guide-explain">How many days it takes for a new order to arrive at your warehouse after you place it.<br><span class="guide-rec">Example: if your supplier ships in 5 days, enter 5.</span></div>
+                        </div>
+                        <div class="guide-item">
+                            <div class="guide-param">Service Level</div>
+                            <div class="guide-explain">How often you want to guarantee you have stock available (probability).<br><span class="guide-rec">95% is the industry standard. 99% means very little risk but more safety stock.</span></div>
+                        </div>
+                    </div>
+                    <div class="guide-warning">
+                        Setting p, d, and q all to 0 will cause the CV engine to fail and produce no reliability score. Always keep at least one non-zero.
+                    </div>
+                </div>
                 <div class="param-grid">
                     <div class="param-group">
                         <h4>Forecast settings</h4>
@@ -223,7 +290,7 @@
                 <h4>Select series to forecast (max 5)</h4>
                 <div id="seriesCheckboxes" class="series-checks"></div>
             </div>
-            <button class="btn-primary btn-run" id="runForecastBtn">Run forecast</button>
+            <button class="btn-primary btn-run" id="runForecastBtn" data-tooltip="Run the full forecasting pipeline. ChainCast will clean your data, test models, and generate predictions with confidence intervals.">Run forecast</button>
         </div>
     </section>
 
@@ -248,31 +315,50 @@
 
     <!-- Results -->
     <section class="section hidden" id="results-section">
-        <div class="container">
+        <div class="container-fluid">
             <div class="results-top">
                 <h2>Forecast results</h2>
                 <div class="results-actions">
-                    <button class="btn-secondary" id="downloadCsvBtn">Export CSV</button>
-                    <button class="btn-secondary" id="downloadPdfBtn">Export PDF report</button>
-                    <button class="btn-ghost" id="newForecastBtn">New forecast</button>
+                    <button class="btn-secondary" id="downloadCsvBtn" data-tooltip="Download your future forecast as a spreadsheet (CSV). Includes predicted values and 80%/95% confidence bands.">Export CSV</button>
+                    <button class="btn-secondary" id="downloadPdfBtn" data-tooltip="Download a full 6-page PDF report: data summary, what was skipped, model comparison table, supply chain parameters, and the complete forecast.">Export PDF report</button>
+                    <button class="btn-ghost" id="newForecastBtn" data-tooltip="Go back to upload a new dataset and start fresh. Your current results will be cleared.">New forecast</button>
                 </div>
             </div>
             <div class="best-model-banner" id="bestModelBanner"></div>
+            <div class="trust-score-bar" id="trustScoreBar"></div>
             <div class="warnings-box hidden" id="warningsBox"></div>
             <div class="charts-grid">
-                <div class="chart-card full-width">
-                    <div class="chart-title">Demand forecast with prediction intervals</div>
-                    <div id="forecastChart" class="chart-container"></div>
+        <div class="top-charts-row">
+                <div class="chart-card">
+                    <div class="chart-title">Demand forecast dashboard</div>
+                    <div id="forecastChart" class="chart-container chart-main"></div>
+                    <div class="chart-explanation">
+                        <strong>Simplified View:</strong> History (solid) vs. AI Prediction (dotted).
+                    </div>
                 </div>
+                <div class="chart-card">
+                    <div class="chart-title">Historical baseline profile</div>
+                    <div id="historyOnlyChart" class="chart-container chart-main"></div>
+                    <div class="chart-explanation">
+                        <strong>Pure Data:</strong> This is your raw historical performance without AI.
+                    </div>
+                </div>
+            </div>
                 <div class="chart-card">
                     <div class="chart-title">Model comparison (MAE)</div>
                     <div id="comparisonChart" class="chart-container chart-half"></div>
+                    <div class="chart-explanation">
+                        <strong>What this shows:</strong> Mean Absolute Error (MAE) measures the strict average mathematical distance between the model's predictions and actual historical observations. A lower MAE indicates a superior model with tighter, more accurate forecasting precision.
+                    </div>
                 </div>
                 <div class="chart-card">
                     <div class="chart-title">Residual diagnostics</div>
                     <div id="residualsChart" class="chart-container chart-half"></div>
                     <div id="ljungBoxResult" class="ljung-result ljung-unknown">Ljung‑Box test will appear after
                         forecast.</div>
+                    <div class="chart-explanation">
+                        <strong>What this shows:</strong> Residuals display the pure mathematical "misses" of the model. A perfect model leaves trailing white noise centered exactly on the zero axis. Significant clustering or patterns suggest underlying seasonality that the model failed to capture.
+                    </div>
                 </div>
             </div>
             <div class="metrics-card">
@@ -280,8 +366,15 @@
                 <div id="metricsTable" class="metrics-table-wrap"></div>
             </div>
             <div class="sc-metrics-card hidden" id="scMetricsCard">
-                <div class="chart-title">Supply chain decision metrics</div>
+                <div class="chart-title">Supply chain dashboard</div>
+                <div class="sc-executive-summary" id="scSummary">
+                    <!-- Dynamic summary like "Buy X when stock is Y" will be injected here -->
+                </div>
                 <div class="sc-grid" id="scGrid"></div>
+                <div class="chart-explanation">
+                    <strong>Simple Explanation:</strong> These numbers tell you when and how much to buy. 
+                    <em>Safety Stock</em> is your "emergency backup" for unexpected spikes, and the <em>Reorder Point</em> is your "buy now" trigger to ensure new stock arrives before you run out.
+                </div>
                 <div class="sc-cost-section hidden" id="scCostSection"></div>
             </div>
         </div>
@@ -304,9 +397,31 @@
         </div>
     </section>
 
+    <!-- Data Transparency Modal -->
+    <div class="modal-overlay hidden" id="dataReportOverlay" onclick="closeDataReport(event)">
+        <div class="modal-panel" id="dataReportPanel">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <svg viewBox="0 0 24 24" class="modal-icon"><path d="M9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4zM5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" fill="currentColor"/></svg>
+                    <h3>Data Processing Report</h3>
+                </div>
+                <button class="modal-close" onclick="closeDataReport()">
+                    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+            </div>
+            <p class="modal-subtitle">Everything ChainCast processed, assumed, or skipped during your forecast run.</p>
+            <div class="modal-body" id="dataReportBody"></div>
+            <div class="modal-footer">
+                <button class="btn-primary" onclick="closeDataReport()">Got it, show my forecast</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast notifications -->
     <div class="toast hidden" id="errorToast">
-        <span class="toast-icon">⚠️</span>
+        <span class="toast-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+        </span>
         <div class="toast-body">
             <strong id="toastTitle">Error</strong>
             <p id="toastMsg"></p>
