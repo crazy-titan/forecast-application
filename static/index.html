@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>ChainCast — Supply Chain Forecasting</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+    <link rel="stylesheet" href="/static/style.css" />
+    <script>window.API_BASE = "";</script>
+</head>
+
+<body>
+    <header class="site-header">
+        <div class="header-inner">
+            <div class="logo">
+                <span class="logo-icon">⛓️</span>
+                <span>Chain<span class="logo-accent">Cast</span></span>
+            </div>
+            <nav class="header-nav">
+                <a href="#data-section">Data</a>
+                <a href="#results-section">Forecast</a>
+                <a href="#theory-section">Theory</a>
+            </nav>
+            <button class="theme-toggle" id="themeToggle" aria-label="Dark mode">🌙</button>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-badge">Supply Chain Intelligence</div>
+            <h1 class="hero-title">Demand Forecasting<br /><span class="grad-text">Powered by ARIMA / SARIMA</span></h1>
+            <p class="hero-sub">Upload your supply chain data – orders, inventory, shipments, lead times. Get
+                probabilistic forecasts, safety stock recommendations, and full model explainability.</p>
+            <div class="hero-stats">
+                <div class="hstat"><span class="hstat-n">4</span><span class="hstat-l">Models</span></div>
+                <div class="hstat"><span class="hstat-n">7</span><span class="hstat-l">Analysis steps</span></div>
+                <div class="hstat"><span class="hstat-n">∞</span><span class="hstat-l">Datasets</span></div>
+            </div>
+        </div>
+        <div class="hero-visual">
+            <div class="hero-chart-mock">
+                <div class="mock-line"></div>
+                <div class="mock-labels"><span>History</span><span>→</span><span class="grad-text">Forecast</span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Step 1: Data selection -->
+    <section class="section" id="data-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="step-badge">Step 1</span>
+                <h2>Choose your dataset</h2>
+                <p>Upload a CSV file or pick a built-in sample</p>
+            </div>
+            <div class="tab-row">
+                <button class="tab active" data-tab="upload">Upload CSV</button>
+                <button class="tab" data-tab="samples">Sample datasets</button>
+            </div>
+            <div class="tab-panel active" id="tab-upload">
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-icon">☁️</div>
+                    <div class="upload-text"><strong>Drop your CSV here</strong><span>or click to browse</span></div>
+                    <div class="upload-hint">Maximum 10 MB · CSV format · any column names</div>
+                    <input type="file" id="fileInput" accept=".csv" style="display:none" />
+                </div>
+                <div class="data-sources-tip">
+                    <strong>Data sources we recommend:</strong>
+                    <div class="source-chips">
+                        <a href="https://www.kaggle.com/datasets" target="_blank" class="chip">Kaggle</a>
+                        <a href="https://fred.stlouisfed.org" target="_blank" class="chip">FRED</a>
+                        <a href="https://data.worldbank.org" target="_blank" class="chip">World Bank</a>
+                        <a href="https://data.gov" target="_blank" class="chip">Data.gov</a>
+                        <a href="https://ourworldindata.org" target="_blank" class="chip">Our World in Data</a>
+                    </div>
+                    <span class="chip-hint">Popular Kaggle datasets: Superstore Sales, Supply Chain Analysis, Avocado
+                        Prices, Delhi Climate</span>
+                </div>
+            </div>
+            <div class="tab-panel" id="tab-samples">
+                <div class="samples-grid" id="samplesGrid">
+                    <div class="samples-loading">Loading sample datasets...</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Step 2: Column mapping -->
+    <section class="section hidden" id="mapping-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="step-badge">Step 2</span>
+                <h2>Map your columns</h2>
+                <p>Tell us which column contains dates and which contains the values to forecast</p>
+            </div>
+            <div class="mapping-card">
+                <div class="preview-table-wrap">
+                    <h4>Data preview (first 5 rows)</h4>
+                    <div class="table-scroll" id="previewTable"></div>
+                </div>
+                <div class="mapping-form">
+                    <div class="map-row">
+                        <label>Date column <span class="req">*</span></label>
+                        <select id="dateColSelect"></select>
+                        <span class="map-hint">Column containing timestamps or dates</span>
+                    </div>
+                    <div class="map-row">
+                        <label>Value column <span class="req">*</span></label>
+                        <select id="valueColSelect"></select>
+                        <span class="map-hint">Column to forecast (demand, sales, units, etc.)</span>
+                    </div>
+                    <div class="map-row">
+                        <label>Series ID column <span class="opt">(optional)</span></label>
+                        <select id="idColSelect"></select>
+                        <span class="map-hint">For multiple products/SKUs – leave empty for a single series</span>
+                    </div>
+                    <button class="btn-primary" id="confirmMappingBtn">Confirm mapping →</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Step 3: Forecast configuration -->
+    <section class="section hidden" id="settings-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="step-badge">Step 3</span>
+                <h2>Configure forecast</h2>
+                <p>Auto mode chooses optimal parameters. Manual mode gives you full control.</p>
+            </div>
+            <div class="detected-banner" id="detectedBanner"></div>
+            <div class="mode-toggle-wrap">
+                <div class="mode-toggle">
+                    <button class="mode-btn active" data-mode="auto" id="modeAuto">
+                        <span class="mode-icon">🤖</span>
+                        <span class="mode-label">Auto mode</span>
+                        <span class="mode-sub">Let the system decide</span>
+                    </button>
+                    <button class="mode-btn" data-mode="manual" id="modeManual">
+                        <span class="mode-icon">⚙️</span>
+                        <span class="mode-label">Manual mode</span>
+                        <span class="mode-sub">Full parameter control</span>
+                    </button>
+                </div>
+            </div>
+            <div class="auto-summary" id="autoSummary">
+                <div class="auto-item"><span class="ai">Season length</span><span class="av" id="autoSL">—</span></div>
+                <div class="auto-item"><span class="ai">Horizon</span><span class="av" id="autoHz">—</span></div>
+                <div class="auto-item"><span class="ai">CV windows</span><span class="av">5</span></div>
+                <div class="auto-item"><span class="ai">Models compared</span><span class="av">4</span></div>
+            </div>
+            <div class="manual-controls hidden" id="manualControls">
+                <div class="param-grid">
+                    <div class="param-group">
+                        <h4>Forecast settings</h4>
+                        <div class="param-row"><label>Horizon <span class="param-help"
+                                    title="Number of future periods to forecast">?</span></label><input type="number"
+                                id="pHorizon" value="14" min="1" max="365" /></div>
+                        <div class="param-row"><label>Season length <span class="param-help"
+                                    title="7 = weekly, 12 = monthly, 52 = yearly">?</span></label><input type="number"
+                                id="pSeasonLen" value="7" min="1" max="365" /></div>
+                        <div class="param-row"><label>CV windows <span class="param-help"
+                                    title="Number of cross-validation windows">?</span></label><input type="number"
+                                id="pWindows" value="5" min="2" max="20" /></div>
+                    </div>
+                    <div class="param-group">
+                        <h4>ARIMA (p, d, q)</h4>
+                        <div class="param-row"><label>Max p (AR order)</label><input type="number" id="pP" value="3"
+                                min="0" max="10" /></div>
+                        <div class="param-row"><label>Max d (differencing)</label><input type="number" id="pD" value="2"
+                                min="0" max="3" /></div>
+                        <div class="param-row"><label>Max q (MA order)</label><input type="number" id="pQ" value="3"
+                                min="0" max="10" /></div>
+                    </div>
+                    <div class="param-group">
+                        <h4>Seasonal (P, D, Q)</h4>
+                        <div class="param-row"><label>Max P</label><input type="number" id="pSP" value="2" min="0"
+                                max="5" /></div>
+                        <div class="param-row"><label>Max D</label><input type="number" id="pSD" value="1" min="0"
+                                max="2" /></div>
+                        <div class="param-row"><label>Max Q</label><input type="number" id="pSQ" value="2" min="0"
+                                max="5" /></div>
+                    </div>
+                    <div class="param-group">
+                        <h4>Supply chain parameters</h4>
+                        <div class="param-row"><label>Lead time (days)</label><input type="number" id="pLeadTime"
+                                value="7" min="1" max="365" /></div>
+                        <div class="param-row"><label>Service level</label><select id="pServiceLevel">
+                                <option value="0.90">90%</option>
+                                <option value="0.95" selected>95%</option>
+                                <option value="0.99">99%</option>
+                            </select></div>
+                        <div class="param-row"><label>Holding cost per unit per day</label><input type="number"
+                                id="pHoldCost" value="0" min="0" step="0.01" /></div>
+                        <div class="param-row"><label>Stockout cost per unit</label><input type="number" id="pStockCost"
+                                value="0" min="0" step="0.01" /></div>
+                    </div>
+                </div>
+            </div>
+            <div class="auto-sc-inputs" id="autoScInputs">
+                <h4>Supply chain inputs</h4>
+                <div class="auto-sc-grid">
+                    <div class="param-row"><label>Lead time (days)</label><input type="number" id="aLeadTime" value="7"
+                            min="1" max="365" /></div>
+                    <div class="param-row"><label>Service level</label><select id="aServiceLevel">
+                            <option value="0.90">90%</option>
+                            <option value="0.95" selected>95%</option>
+                            <option value="0.99">99%</option>
+                        </select></div>
+                    <div class="param-row"><label>Holding cost per unit per day</label><input type="number"
+                            id="aHoldCost" value="0" min="0" step="0.01" /></div>
+                    <div class="param-row"><label>Stockout cost per unit</label><input type="number" id="aStockCost"
+                            value="0" min="0" step="0.01" /></div>
+                </div>
+            </div>
+            <div class="series-selector hidden" id="seriesSelector">
+                <h4>Select series to forecast (max 5)</h4>
+                <div id="seriesCheckboxes" class="series-checks"></div>
+            </div>
+            <button class="btn-primary btn-run" id="runForecastBtn">Run forecast</button>
+        </div>
+    </section>
+
+    <!-- Loading indicator -->
+    <section class="section hidden" id="loading-section">
+        <div class="container">
+            <div class="loading-card">
+                <div class="spinner-ring"></div>
+                <h3 id="loadingTitle">Running forecast pipeline</h3>
+                <div class="loading-steps">
+                    <div class="lstep">Validating data and checking stationarity</div>
+                    <div class="lstep">Fitting baseline models</div>
+                    <div class="lstep">Running AutoARIMA optimisation</div>
+                    <div class="lstep">Running cross-validation</div>
+                    <div class="lstep">Generating forecast and prediction intervals</div>
+                    <div class="lstep">Computing supply chain metrics</div>
+                    <div class="lstep">Finalising results</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results -->
+    <section class="section hidden" id="results-section">
+        <div class="container">
+            <div class="results-top">
+                <h2>Forecast results</h2>
+                <div class="results-actions">
+                    <button class="btn-secondary" id="downloadCsvBtn">Export CSV</button>
+                    <button class="btn-secondary" id="downloadPdfBtn">Export PDF report</button>
+                    <button class="btn-ghost" id="newForecastBtn">New forecast</button>
+                </div>
+            </div>
+            <div class="best-model-banner" id="bestModelBanner"></div>
+            <div class="warnings-box hidden" id="warningsBox"></div>
+            <div class="charts-grid">
+                <div class="chart-card full-width">
+                    <div class="chart-title">Demand forecast with prediction intervals</div>
+                    <div id="forecastChart" class="chart-container"></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Model comparison (MAE)</div>
+                    <div id="comparisonChart" class="chart-container chart-half"></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Residual diagnostics</div>
+                    <div id="residualsChart" class="chart-container chart-half"></div>
+                    <div id="ljungBoxResult" class="ljung-result ljung-unknown">Ljung‑Box test will appear after
+                        forecast.</div>
+                </div>
+            </div>
+            <div class="metrics-card">
+                <div class="chart-title">Performance metrics</div>
+                <div id="metricsTable" class="metrics-table-wrap"></div>
+            </div>
+            <div class="sc-metrics-card hidden" id="scMetricsCard">
+                <div class="chart-title">Supply chain decision metrics</div>
+                <div class="sc-grid" id="scGrid"></div>
+                <div class="sc-cost-section hidden" id="scCostSection"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Methodology explanation -->
+    <section class="section" id="theory-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>How it works – 7 steps</h2>
+                <p>Understanding the methodology behind your forecast</p>
+                <button class="btn-ghost theory-toggle" id="theoryToggle">Show explanation ↓</button>
+            </div>
+            <div class="theory-body hidden" id="theoryBody">
+                <div class="accordion" id="theoryAccordion">
+                    <p class="theory-placeholder">Run a forecast first – a personalised explanation will appear here.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Toast notifications -->
+    <div class="toast hidden" id="errorToast">
+        <span class="toast-icon">⚠️</span>
+        <div class="toast-body">
+            <strong id="toastTitle">Error</strong>
+            <p id="toastMsg"></p>
+        </div>
+        <button class="toast-close" onclick="hideToast()">✕</button>
+    </div>
+
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <span><strong>ChainCast</strong> — supply chain demand forecasting</span>
+            <span>FastAPI · statsforecast · Plotly</span>
+        </div>
+    </footer>
+
+    <script src="/static/app.js"></script>
+</body>
+
+</html>
