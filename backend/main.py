@@ -274,7 +274,9 @@ def forecast(
     # Render's 512MB RAM will immediately crash if pandas loads millions of rows.
     # We chunk large files, discarding old history instantly and keeping only the tail.
     file_size = os.path.getsize(path)
-    is_huge = file_size > 2 * 1024 * 1024 # Larger than 2MB is treated as massive
+    ON_RENDER = os.environ.get("RENDER") == "true"
+    limit_mb = 2 if ON_RENDER else 500
+    is_huge = file_size > limit_mb * 1024 * 1024 
 
     if is_huge:
         chunks = []

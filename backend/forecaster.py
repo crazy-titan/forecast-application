@@ -7,6 +7,8 @@ import pandas as pd
 import numpy as np
 from typing import Dict, Any, Optional, List
 
+ON_RENDER = os.environ.get("RENDER") == "true"
+
 from statsforecast import StatsForecast
 from statsforecast.models import Naive, HistoricAverage, SeasonalNaive, AutoARIMA
 from utilsforecast.losses import mae, mse
@@ -121,7 +123,7 @@ def run_pipeline(
         all_models = baseline + [historic_avg, arima, sarima]
 
     # Fit
-    train_ai = df_sf.groupby("unique_id").tail(550).reset_index(drop=True)
+    train_ai = df_sf.groupby("unique_id").tail(550).reset_index(drop=True) if ON_RENDER else df_sf
     try:
         sf = StatsForecast(models=all_models, freq=freq, n_jobs=1)
         sf.fit(train_ai)
@@ -163,6 +165,19 @@ def run_pipeline(
 
         sf_cv = StatsForecast(models=cv_models, freq=freq, n_jobs=1)
         cv_df = sf_cv.cross_validation(h=horizon, df=train_ai, n_windows=actual_windows, step_size=horizon, refit=False)
+        
+        # Baselines run separately with refit=True to completely bypass the 'forward' attribute bug
+        try:
+            sf_base = StatsForecast(models=[Naive(), SeasonalNaive(season_length=season_length), HistoricAverage()], freq=freq, n_jobs=1)
+            cv_base = sf_base.cross_validation(h=horizon, df=train_ai, n_windows=actual_windows, step_size=horizon, refit=True)
+            cols_to_use = cv_base.columns.difference(cv_df.columns).tolist() + ["unique_id", "ds", "cutoff"]
+            cv_df = pd.merge(cv_df, cv_base[cols_to_use], on=["unique_id", "ds", "cutoff"], how="left")
+            
+            # Re-update names so evaluation loop catches them
+            present_base = [c for c in cv_base.columns if c not in ["unique_id", "ds", "cutoff", "y"]]
+            all_model_names.extend(present_base)
+        except Exception:
+            pass
         
         if "unique_id" not in cv_df.columns:
             cv_df = cv_df.reset_index()
