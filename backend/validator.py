@@ -34,9 +34,15 @@ def validate_dataframe(
     # --- Date column conversion ---
     try:
         df["_date"] = pd.to_datetime(df[date_col], errors='coerce')
+        # Remove timezone info if present (infer_freq fails on tz-aware)
+        if df["_date"].dt.tz is not None:
+            df["_date"] = df["_date"].dt.tz_localize(None)
+        
         if df["_date"].isna().all():
             # try alternative parsing
             df["_date"] = pd.to_datetime(df[date_col], errors='coerce', dayfirst=True)
+            if df["_date"].dt.tz is not None:
+                df["_date"] = df["_date"].dt.tz_localize(None)
         if df["_date"].isna().any():
             n_invalid = df["_date"].isna().sum()
             warnings.append(f"{n_invalid} rows with invalid dates. They will be dropped.")
@@ -48,7 +54,7 @@ def validate_dataframe(
         info["date_max"] = df["_date"].max().isoformat()
         info["date_range"] = f"{info['date_min']} → {info['date_max']}"
 
-        # Infer frequency
+        # Infer frequency (now timezone-naive)
         if len(df) > 1:
             inferred_freq = pd.infer_freq(df["_date"])
             if inferred_freq:
