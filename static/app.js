@@ -1096,11 +1096,16 @@ function escapeHtml(str) {
 }
 function showToast(title, msg) {
   document.getElementById("toastTitle").textContent = title;
-  document.getElementById("toastMsg").textContent = msg;
+  // Use innerHTML to allow for bolding/line breaks in diagnostics
+  document.getElementById("toastMsg").innerHTML = msg;
   document.getElementById("errorToast").classList.remove("hidden");
-  setTimeout(hideToast, 10000);
+  // Auto-hide after 15 seconds (longer for diagnostic reading)
+  clearTimeout(window.toastTimer);
+  window.toastTimer = setTimeout(hideToast, 15000);
 }
-function hideToast() { document.getElementById("errorToast").classList.add("hidden"); }
+function hideToast() { 
+  document.getElementById("errorToast").classList.add("hidden"); 
+}
 
 /* ═══════════════════════════════════════════════════════════
    SMART TOOLTIP ENGINE — 3-second delayed tooltip on hover

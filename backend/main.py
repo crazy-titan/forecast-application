@@ -130,16 +130,25 @@ def list_datasets():
 @app.post("/upload")
 async def upload(file: UploadFile = File(...), session_id: str = Form(...)):
     content = await file.read()
+    
+    # ── 1. Binary / Blob Detection ──────────────────────────────────────────
+    # Check for null bytes or typical MacOS Alias headers in the first 2KB
+    if b"\x00" in content[:2048] or b"book" in content[:4] or b"alias" in content[:16]:
+        raise HTTPException(400, "This file is not a valid text CSV. It appears to be a binary blob (like a MacOS Alias or Image). Please upload a raw .csv file.")
+
     ok, err = validate_file_size(len(content))
     if not ok:
         raise HTTPException(400, err)
+        
     try:
+        # ── 2. Detailed CSV Parsing ─────────────────────────────────────────
         df = pd.read_csv(io.BytesIO(content))
+        if df.empty:
+            raise HTTPException(400, "The CSV file was read successfully but contains no data (empty file).")
+    except pd.errors.ParserError as pe:
+        raise HTTPException(400, f"CSV structure error: Your file is malformatted or has irregular column counts. Details: {str(pe)[:100]}...")
     except Exception as e:
-        raise HTTPException(400, f"Cannot read CSV: {e}")
-    
-    if len(df) == 0:
-        raise HTTPException(400, "File is empty")
+        raise HTTPException(400, f"Could not process CSV: {str(e)}")
     
     sess = get_session(session_id)
     path = os.path.join(sess["folder"], "data.csv")

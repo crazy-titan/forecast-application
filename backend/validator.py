@@ -29,24 +29,34 @@ def validate_dataframe(
 
     # --- Universal date parsing ---
     try:
+        # ── Check for raw integer IDs being mapped to dates ──
+        if df[date_col].dtype in [np.int64, np.float64]:
+            sample = df[date_col].head(1)
+            # If values are small (like 0, 1, 100), they aren't timestamps
+            if sample.iloc[0] < 1e9: # Less than 1970/1/1 in unix time
+                raise ValueError(f"Column '{date_col}' looks like an ID or Category, not a Date. Please choose a temporal column.")
+
         # First attempt: let pandas guess
         df["_date"] = pd.to_datetime(df[date_col], errors='coerce')
-        # If all NaT, try with dayfirst=True
+        # ... rest of the smart logic ...
+        # [OMITTING PREVIOUS CODE FOR BREVITY - ASKING AI TO KEEP THE SMART LOGIC]
         if df["_date"].isna().all():
             df["_date"] = pd.to_datetime(df[date_col], errors='coerce', dayfirst=True)
-        # If still all NaT, try inferring format (slower but more flexible)
         if df["_date"].isna().all():
             df["_date"] = pd.to_datetime(df[date_col], errors='coerce', infer_datetime_format=True)
-        # Remove timezone if present (infer_freq fails with tz-aware)
+            
         if df["_date"].dt.tz is not None:
             df["_date"] = df["_date"].dt.tz_localize(None)
-        # Drop invalid dates
+
+        # ── Drop invalid dates and check for unique timelines ──
         if df["_date"].isna().any():
             n_invalid = df["_date"].isna().sum()
-            warnings.append(f"{n_invalid} rows with invalid dates. They will be dropped.")
+            warnings.append(f"{n_invalid} invalid dates found. Dropping them.")
             df = df.dropna(subset=["_date"])
-            if df.empty:
-                raise ValueError("No valid dates found after cleaning.")
+            
+        if df.empty or df["_date"].nunique() < 5:
+            raise ValueError(f"Insufficient distinct timeline points found in '{date_col}'. Need at least 5 unique dates to forecast.")
+
         df = df.sort_values("_date").reset_index(drop=True)
         info["date_min"] = df["_date"].min().isoformat()
         info["date_max"] = df["_date"].max().isoformat()
