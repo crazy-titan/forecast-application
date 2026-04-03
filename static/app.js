@@ -935,7 +935,12 @@ function renderResidualsChart(data) {
     paper_bgcolor: "rgba(0,0,0,0)",
     plot_bgcolor: "rgba(0,0,0,0)",
     font: { family: "Outfit, sans-serif", color: "#a0aec0", size: 11 },
-    xaxis: { gridcolor: "rgba(255,255,255,0.06)", title: "Date" },
+    xaxis: { 
+      gridcolor: "rgba(255,255,255,0.06)", 
+      title: "Date",
+      type: "date",
+      tickformat: "%b %d, %Y" // Prevents millisecond '...59.999' formatting
+    },
     yaxis: { gridcolor: "rgba(255,255,255,0.06)", title: "Residual" },
     margin: { l: 55, r: 10, t: 10, b: 60 },
     showlegend: false

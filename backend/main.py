@@ -274,8 +274,13 @@ def forecast(
     # Render's 512MB RAM will immediately crash if pandas loads millions of rows.
     # We chunk large files, discarding old history instantly and keeping only the tail.
     file_size = os.path.getsize(path)
-    ON_RENDER = os.environ.get("RENDER") == "true"
-    limit_mb = 2 if ON_RENDER else 500
+    # Be case-insensitive and strip whitespace for safer environment detection
+    raw_render = str(os.environ.get("RENDER", "false")).lower().strip()
+    ON_RENDER = (raw_render == "true")
+    
+    # Lift the 'Huge' limit to 1GB for Localhost to ensure full history is used.
+    # Only Render (512MB limit) gets the 2MB ultra-strict constraint.
+    limit_mb = 3 if ON_RENDER else 1024
     is_huge = file_size > limit_mb * 1024 * 1024 
 
     if is_huge:
