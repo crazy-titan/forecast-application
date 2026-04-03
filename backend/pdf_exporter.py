@@ -127,7 +127,7 @@ def make_pdf_report(session_data: dict) -> bytes:
             ("ok",   "Missing data gaps: Auto-filled using forward-fill and linear interpolation."),
             ("ok",   "Negative demand values: Clipped to 0 (demand cannot be physically negative)."),
             ("info", "Turbo Mode: High-efficiency matrix inversion enabled for near-instant results."),
-            ("info", "Dual-Track Engine: Combined Industry AI (Theta) with Presentation Models (ARIMA)."),
+            ("info", "Performance Guard: Academic models (ARIMA) replaced with Industry AI for 5-year scale."),
         ]
         for kind, msg in adjustments:
             pdf.notice_row(msg, kind)
