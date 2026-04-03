@@ -65,7 +65,7 @@ def run_pipeline(
 
     # ── 1. ULTRA-SAFE MEMORY GUARD ──────────────────────────────────────────
     total_points = len(df_sf)
-    is_massive = total_points > 50000 # Threshold for Render (512MB RAM)
+    is_massive = total_points > (50000 if ON_RENDER else 5_000_000) # Threshold for Render (512MB RAM)
     
     if is_massive:
         results["is_high_speed"] = True
