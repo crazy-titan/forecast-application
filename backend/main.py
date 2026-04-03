@@ -285,19 +285,21 @@ def forecast(
 
     if is_huge:
         chunks = []
+        # Use 50k as the safe threshold for full-history visualization (approx 5 years of daily/hourly data)
+        safe_viz_limit = 50000
         for chunk in pd.read_csv(path, usecols=use_cols, chunksize=50000):
             if mapping.get("id_col"):
-                c_tail = chunk.groupby(mapping["id_col"]).tail(2000)
+                c_tail = chunk.groupby(mapping["id_col"]).tail(safe_viz_limit)
             else:
-                c_tail = chunk.tail(2000)
+                c_tail = chunk.tail(safe_viz_limit)
             chunks.append(c_tail)
             gc.collect()
             
         df = pd.concat(chunks, ignore_index=True)
         if mapping.get("id_col"):
-            df = df.groupby(mapping["id_col"]).tail(2000).reset_index(drop=True)
+            df = df.groupby(mapping["id_col"]).tail(safe_viz_limit).reset_index(drop=True)
         else:
-            df = df.tail(2000).reset_index(drop=True)
+            df = df.tail(safe_viz_limit).reset_index(drop=True)
     else:
         df = pd.read_csv(path, usecols=use_cols)
         

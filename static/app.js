@@ -706,10 +706,26 @@ function renderHistoryOnlyChart(data) {
     paper_bgcolor: paper,
     plot_bgcolor: paper,
     font: { family: "Outfit, sans-serif", color: textCol },
-    xaxis: { gridcolor: gridCol, title: "Historical Time Range" },
+    xaxis: { 
+      gridcolor: gridCol, 
+      title: "Historical Time Range",
+      type: "date",
+      tickformat: "%b %d, %Y",
+      rangeselector: {
+          buttons: [
+              {count: 1, label: '1y', step: 'year', stepmode: 'backward'},
+              {count: 1, label: '1m', step: 'month', stepmode: 'backward'},
+              {count: 7, label: '1w', step: 'day', stepmode: 'backward'},
+              {step: 'all', label: 'All'}
+          ],
+          bgcolor: 'rgba(255,255,255,0.05)',
+          activecolor: 'rgba(0,229,255,0.2)',
+          font: { color: '#ffffff', size: 10 }
+      }
+    },
     yaxis: { gridcolor: gridCol, title: "Actual Demand / Units" },
-    legend: { orientation: "h", y: -0.28 },
-    margin: { l: 70, r: 30, t: 70, b: 100 },
+    legend: { orientation: "h", y: -0.38 },
+    margin: { l: 70, r: 30, t: 70, b: 120 },
     hovermode: "closest",
     annotations: [
       {
@@ -825,10 +841,27 @@ function renderForecastChart(data) {
     paper_bgcolor: paper,
     plot_bgcolor: paper,
     font: { family: "Outfit, sans-serif", color: textCol },
-    xaxis: { gridcolor: gridCol, title: "Time Continuum (Past → Future)" },
+    xaxis: { 
+      gridcolor: gridCol, 
+      title: "Time Continuum (Past → Future)",
+      type: "date",
+      tickformat: "%b %d, %Y",
+      rangeselector: {
+          buttons: [
+              {count: 1, label: '1y', step: 'year', stepmode: 'backward'},
+              {count: 6, label: '6m', step: 'month', stepmode: 'backward'},
+              {count: 1, label: '1m', step: 'month', stepmode: 'backward'},
+              {count: 7, label: '1w', step: 'day', stepmode: 'backward'},
+              {step: 'all', label: 'All'}
+          ],
+          bgcolor: 'rgba(255,255,255,0.05)',
+          activecolor: 'rgba(0,229,255,0.2)',
+          font: { color: '#ffffff', size: 10 }
+      }
+    },
     yaxis: { gridcolor: gridCol, title: "Demand / Units" },
-    legend: { orientation: "h", y: -0.22 },
-    margin: { l: 70, r: 30, t: 70, b: 90 },
+    legend: { orientation: "h", y: -0.32 }, // Increased offset to avoid range selector overlap
+    margin: { l: 70, r: 30, t: 70, b: 120 }, // Increased bottom margin for rangeselector
     hovermode: "x unified",
     shapes: [
       {
