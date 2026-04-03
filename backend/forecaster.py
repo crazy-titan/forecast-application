@@ -65,17 +65,17 @@ def run_pipeline(
     mode: str = "auto",
     manual_params: Optional[Dict[str, int]] = None,
 ) -> Dict[str, Any]:
+    print(f"[ENGINE-LOG] Input detected: {len(df_sf)} rows across {df_sf['unique_id'].nunique()} series.")
     results = {"errors": [], "is_high_speed": False}
 
     if df_sf.empty or df_sf["unique_id"].nunique() == 0:
         raise ValueError("No valid data points found. Please check your mapping.")
 
-    # ── 1. SPEED GUARD: Hard cap on training rows ─────────────────────────
-    # DynamicOptimizedTheta is O(n^2). 500 rows = ~0.5s, 2000 rows = ~8s.
-    # We always cap to 500 points per series for consistent sub-10s performance.
-    MAX_TRAIN_ROWS = 500
-    n_series = df_sf["unique_id"].nunique()
+    # ── 1. SPEED GUARD: Aggressive Resource Optimization ──────────────────
+    # Cap at 300 rows for Auto Mode to ensure sub-10s response on restricted CPUs
+    MAX_TRAIN_ROWS = 300 if mode == "auto" else 500
     df_sf = df_sf.groupby("unique_id").tail(MAX_TRAIN_ROWS).reset_index(drop=True)
+    print(f"[ENGINE-LOG] Training history capped at {MAX_TRAIN_ROWS} rows for performance.")
 
     # Minimum rows needed
     min_rows_needed = max(horizon * 2, season_length * 2, 10)
@@ -84,88 +84,74 @@ def run_pipeline(
     short_series = series_lengths[series_lengths < min_rows_needed].index.tolist()
 
     if short_series:
-        results["errors"].append(f"Skipping {len(short_series)} items with too little history.")
         df_sf = df_sf[df_sf["unique_id"].isin(long_enough)]
         if df_sf.empty:
-            raise ValueError(f"Insufficient data. Need at least {min_rows_needed} rows per item.")
+            raise ValueError(f"Insufficient history. Need at least {min_rows_needed} rows per item.")
 
     # Split train/test
     test = df_sf.groupby("unique_id").tail(horizon)
     train = df_sf.drop(test.index).reset_index(drop=True)
-    if train.empty:
-        raise ValueError(f"Forecast Horizon ({horizon}) is too large for your history.")
-
-    # ── 2. MODEL SELECTION ────────────────────────────────────────────────
-    # n_jobs=1 is faster than -1 for small-to-medium datasets (avoids fork overhead)
+    
+    # ── 2. MODEL SELECTION (Lean & Fast) ──────────────────────────────────
+    # Force n_jobs=1 to prevent Render environment hangs and fork-limit overhead
     N_JOBS = 1
     baseline = [SeasonalNaive(season_length=season_length), HistoricAverage()]
 
     if mode == "auto":
+        print("[ENGINE-LOG] Model mode: Industrial-AI (Theta/ETS).")
         theta = DynamicOptimizedTheta(season_length=season_length)
         ets = AutoETS(season_length=season_length)
         all_models = baseline + [theta, ets]
     else:
-        ets_manual = AutoETS(season_length=season_length)
-        all_models = baseline + [ets_manual]
+        print("[ENGINE-LOG] Model mode: Manual configuration.")
+        all_models = baseline + [AutoETS(season_length=season_length)]
 
     # ── 3. FIT & PREDICT ──────────────────────────────────────────────────
     try:
+        print("[ENGINE-LOG] Fitting statistical engine models...")
         sf_core = StatsForecast(models=all_models, freq=freq, n_jobs=N_JOBS)
         sf_core.fit(train)
-    except Exception as e:
-        results["errors"].append(f"Model fit warning: {str(e)[:120]}. Using baselines.")
-        sf_core = StatsForecast(models=baseline, freq=freq, n_jobs=N_JOBS)
-        all_models = baseline
-        sf_core.fit(train)
-
-    point_preds = sf_core.predict(h=horizon)
-    try:
+        print("[ENGINE-LOG] Generating future horizons...")
+        point_preds = sf_core.predict(h=horizon)
         prob_preds = sf_core.predict(h=horizon, level=[80, 95])
-    except Exception:
+    except Exception as e:
+        print(f"[ENGINE-LOG] fit process error: {str(e)[:120]}. Falling back.")
+        sf_core = StatsForecast(models=baseline, freq=freq, n_jobs=N_JOBS)
+        sf_core.fit(train)
+        point_preds = sf_core.predict(h=horizon)
         prob_preds = point_preds
 
     results["point_preds"] = point_preds
     results["prob_preds"] = prob_preds
 
-    # ── 4. FAST TOURNAMENT: simple held-out test MAE (no CV refit) ────────
+    # ── 4. ACCURACY ASSESSMENT (Held-out Test) ──────────────────────────
     try:
+        print("[ENGINE-LOG] Finalizing validation metrics...")
         model_names = [m.alias if hasattr(m, "alias") else m.__class__.__name__ for m in all_models]
-        # Use unique names only
-        seen, unique_names = set(), []
-        for n in model_names:
-            if n not in seen:
-                unique_names.append(n)
-                seen.add(n)
-
-        # Score on held-out test — single pass, no extra fitting
-        test_preds = sf_core.predict(h=horizon)
         y_test = test.groupby("unique_id")["y"].apply(list)
-
         mae_vals = {}
-        for mname in unique_names:
-            if mname in test_preds.columns:
-                pred_vals = test_preds.groupby("unique_id")[mname].apply(list)
+        # Ensure unique evaluation across selected models
+        for mname in sorted(list(set(model_names))):
+            if mname in point_preds.columns:
+                pred_vals = point_preds.groupby("unique_id")[mname].apply(list)
                 errors = []
                 for uid in y_test.index:
                     if uid in pred_vals.index:
-                        yt = np.array(y_test[uid][:horizon])
-                        yp = np.array(pred_vals[uid][:horizon])
+                        yt, yp = np.array(y_test[uid][:horizon]), np.array(pred_vals[uid][:horizon])
                         n = min(len(yt), len(yp))
-                        if n > 0:
-                            errors.append(float(np.mean(np.abs(yt[:n] - yp[:n]))))
-                if errors:
-                    mae_vals[mname] = round(float(np.mean(errors)), 4)
+                        if n > 0: errors.append(float(np.mean(np.abs(yt[:n] - yp[:n]))))
+                if errors: mae_vals[mname] = round(float(np.mean(errors)), 4)
 
         if mae_vals:
             best = min(mae_vals, key=mae_vals.get)
             results["best_model"] = best
             results["model_scores"] = mae_vals
-            # Build eval_agg compatible structure
             results["eval_agg"] = pd.DataFrame([{"metric": "mae", **mae_vals}])
         else:
-            results["best_model"] = unique_names[-1] if unique_names else "SeasonalNaive"
-            results["model_scores"] = {}
-            results["eval_agg"] = pd.DataFrame()
+            results["best_model"] = "SeasonalNaive"
+    except Exception as e:
+        print(f"[ENGINE-LOG] assessment error: {str(e)[:80]}")
+        results["best_model"] = "SeasonalNaive"
 
         del test_preds
         gc.collect()

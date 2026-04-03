@@ -80,7 +80,7 @@ async function loadSamples() {
           <span class="smeta">m=${ds.season_length}</span>
         </div>
       `;
-      card.onclick = () => loadSampleDataset(ds.name, ds);
+      card.onclick = () => loadSampleDataset(ds.id, ds);
       grid.appendChild(card);
     });
   } catch (err) {
@@ -88,11 +88,11 @@ async function loadSamples() {
   }
 }
 
-async function loadSampleDataset(name, meta) {
+async function loadSampleDataset(id, meta) {
   if (!sessionId) await startSession();
-  showLoading("Loading sample dataset...");
+  showLoading(`Configuring ${meta.name || "Sample"}...`);
   try {
-    const res = await fetch(`${API}/datasets/${encodeURIComponent(name)}?session_id=${sessionId}`);
+    const res = await fetch(`${API}/datasets/${encodeURIComponent(id)}?session_id=${sessionId}`);
     if (!res.ok) throw new Error((await res.json()).detail || `HTTP ${res.status}`);
     const data = await res.json();
     hideLoading();
@@ -419,10 +419,10 @@ function animateSteps() {
       i++;
     } else {
       // Keep showing busy state if we reach the end but still haven't returned
-      document.getElementById("loadingTitle").textContent = "Almost there: finalizing statistical validation...";
+      document.getElementById("loadingTitle").textContent = "Finalizing results and generating business insights...";
       clearInterval(interval);
     }
-  }, 1800);
+  }, 1500);
 }
 
 function renderResults(data) {
@@ -1149,12 +1149,16 @@ function escapeHtml(str) {
 }
 function showToast(title, msg) {
   document.getElementById("toastTitle").textContent = title;
-  // Use innerHTML to allow for bolding/line breaks in diagnostics
   document.getElementById("toastMsg").innerHTML = msg;
   document.getElementById("errorToast").classList.remove("hidden");
-  // Auto-hide after 15 seconds (longer for diagnostic reading)
   clearTimeout(window.toastTimer);
-  window.toastTimer = setTimeout(hideToast, 15000);
+  window.toastTimer = setTimeout(hideToast, 12000);
+}
+
+function updateThemeIcon() {
+  const icon = document.getElementById("themeIcon");
+  if (!icon) return;
+  icon.innerHTML = theme === "dark" ? "LIGHT" : "DARK";
 }
 function hideToast() { 
   document.getElementById("errorToast").classList.add("hidden"); 
