@@ -35,7 +35,7 @@ def get_theory(results, validation):
     steps = [
         {
             "header": "1. Cleaning your Data",
-            "body": f"The engine scrubbed your dataset for messy symbols and handled {info.get('n_rows',0)} rows, automatically filling in any empty gaps in your history."
+            "body": f"The engine scrubbed your dataset for messy symbols and handled {info.get('n_rows',0):,} rows. Our 'Big Data' pipeline is now optimized for up to 50,000 observations per series."
         },
         {
             "header": "2. Signal Stability Check",
@@ -47,8 +47,8 @@ def get_theory(results, validation):
             "body": f"We found a repeating {info.get('season_length',7)}-step cycle in your history. This is the 'heartbeat' of your business which we use to predict the next peaks."
         },
         {
-            "header": "4. The AI Tournament",
-            "body": f"We pitted simple 'gut-feel' models against our advanced AI (AutoARIMA). The winner was <strong>{best}</strong>, which proved most accurate for your specific pattern."
+            "header": "4. The Hybrid Tournament",
+            "body": f"We pitted traditional algorithms (ARIMA/SARIMA) against our New 'Turbo' AI (Theta/ETS). The winner was <strong>{best}</strong>, which proved most accurate for your specific pattern."
         },
         {
             "header": "5. Learning from Mistakes",
@@ -59,8 +59,8 @@ def get_theory(results, validation):
             "body": "We turned those math predictions into real units. We calculated exactly how much 'extra' (Safety Stock) you need to avoid running out if demand spikes."
         },
         {
-            "header": "7. Future Confidence Zones",
-            "body": "The dotted line is our best guess, but the shaded 'glow' around it shows the safety boundaries. It tells you exactly where your demand is 95% likely to stay."
+            "header": "7. 1,825 Days of History",
+            "body": "Your dashboard now handles 5 full years of history. Use the new range-selectors (1y, 6m, 1m) to zoom into specific peaks and see exactly how demand evolved over half a decade."
         }
     ]
     return {"steps": steps}

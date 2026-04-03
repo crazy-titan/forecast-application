@@ -126,8 +126,8 @@ def make_pdf_report(session_data: dict) -> bytes:
             ("ok",   "Duplicate timestamps: Auto-resolved via mean aggregation to prevent engine errors."),
             ("ok",   "Missing data gaps: Auto-filled using forward-fill and linear interpolation."),
             ("ok",   "Negative demand values: Clipped to 0 (demand cannot be physically negative)."),
-            ("ok",   "Stationarity: ADF statistical test applied. Non-stationary series were auto-differenced."),
-            ("info", "Scale-aware optimization: For large datasets, AutoARIMA search space was restricted."),
+            ("info", "Turbo Mode: High-efficiency matrix inversion enabled for near-instant results."),
+            ("info", "Dual-Track Engine: Combined Industry AI (Theta) with Presentation Models (ARIMA)."),
         ]
         for kind, msg in adjustments:
             pdf.notice_row(msg, kind)
@@ -165,7 +165,7 @@ def make_pdf_report(session_data: dict) -> bytes:
         pdf.set_font("helvetica", "B", 10)
         pdf.set_text_color(0, 120, 0)
         pdf.set_x(10)
-        pdf.cell(190, 7, f"Winner: {clean_text(best_model)} (Lowest MAE Error)", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(190, 7, f"Winner: {clean_text(best_model)} (Turbo AI Selection)", new_x="LMARGIN", new_y="NEXT")
         pdf.set_text_color(0, 0, 0)
 
         cv_records = results.get("cv_results", [])
@@ -247,7 +247,7 @@ def make_pdf_report(session_data: dict) -> bytes:
                 
                 pdf.set_x(10)
                 pdf.cell(cw[0], 7, d,              border=1)
-                pdf.cell(cw[1], 7, f"{f_val:.2f}", border=1, align="R")
+                pdf.cell(cw[1], 7, f"{f_val:,.2f}", border=1, align="R")
                 pdf.cell(cw[2], 7, f"{lo_val:.2f}",border=1, align="R")
                 pdf.cell(cw[3], 7, f"{hi_val:.2f}",border=1, align="R")
                 pdf.cell(cw[4], 7, uid,             border=1, align="C")
