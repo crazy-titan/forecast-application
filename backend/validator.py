@@ -148,7 +148,9 @@ def validate_dataframe(
         else:
             first_vals = df["_value"].dropna()
         if len(first_vals) > 5:
-            adf = adfuller(first_vals, autolag="AIC")
+            # Memory Guard: Cap ADF testing to 600 rows to prevent CPU/RAM choke on Render
+            adf_sample = first_vals.tail(600)
+            adf = adfuller(adf_sample, autolag="AIC")
             p_val = float(adf[1])
             test_stat = float(adf[0])
             is_stat = bool(p_val < 0.05)

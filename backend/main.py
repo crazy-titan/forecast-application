@@ -276,6 +276,15 @@ def forecast(
     sel = [s.strip() for s in selected_series.split(",")] if selected_series else None
     
     try:
+        # ── 4. MEMORY GUARD PRE-TRUNCATION ──────────────────────────────────
+        # If the dataset is massive, truncate it BEFORE running regex in build_sf_dataframe
+        if len(df) > 50000:
+            if mapping.get("id_col"):
+                df = df.groupby(mapping["id_col"]).tail(2000).reset_index(drop=True)
+            else:
+                df = df.tail(2000).reset_index(drop=True)
+            gc.collect()
+
         df_sf = build_sf_dataframe(df, mapping["date_col"], mapping["value_col"], mapping.get("id_col"), sel)
         if df_sf.empty or df_sf["unique_id"].nunique() == 0:
             raise HTTPException(400, "No valid time series found. Check your ID column or date column.")
