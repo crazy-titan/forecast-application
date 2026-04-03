@@ -4,6 +4,7 @@ warnings.filterwarnings("ignore")
 import os
 import io
 import sys
+import datetime
 import traceback
 import pandas as pd
 import numpy as np
@@ -16,17 +17,51 @@ from fastapi.staticfiles import StaticFiles
 from backend.session_manager import create_session, get_session, update_session, delete_session
 from backend.validator import validate_file_size, validate_dataframe
 from backend.forecaster import build_sf_dataframe, run_pipeline, compute_supply_chain_metrics
+from backend.pdf_exporter import make_pdf_report
 
 # --- Placeholders for optional features (can be implemented later) ---
 SAMPLE_DATASETS = {}  # Add sample datasets later if desired
 
 def get_theory(results, validation):
-    """Placeholder for theory generation (can be extended)."""
-    return {}
-
-def make_pdf_report(results, validation, theory, sc_metrics, name):
-    """Placeholder for PDF export (can be implemented later)."""
-    return b"PDF generation not yet implemented."
+    """Generates 7 dynamic steps explaining the personalized methodology."""
+    info = validation.get("info", {})
+    stat = validation.get("stationarity", {})
+    first_ser = list(stat.keys())[0] if stat else "Series_1"
+    si = stat.get(first_ser, {})
+    best = results.get("best_model", "AutoARIMA")
+    
+    steps = [
+        {
+            "header": "1. Cleaning your Data",
+            "body": f"The engine scrubbed your dataset for messy symbols and handled {info.get('n_rows',0)} rows, automatically filling in any empty gaps in your history."
+        },
+        {
+            "header": "2. Signal Stability Check",
+            "body": f"We checked if your demand is steady or volatile. " + 
+                    ("Your signal is stable, so we kept it raw." if si.get("stationary") else "We detected a major trend, so we auto-tuned the data to remove the 'noise' and find the real signal.")
+        },
+        {
+            "header": "3. Identifying the Heartbeat",
+            "body": f"We found a repeating {info.get('season_length',7)}-step cycle in your history. This is the 'heartbeat' of your business which we use to predict the next peaks."
+        },
+        {
+            "header": "4. The AI Tournament",
+            "body": f"We pitted simple 'gut-feel' models against our advanced AI (AutoARIMA). The winner was <strong>{best}</strong>, which proved most accurate for your specific pattern."
+        },
+        {
+            "header": "5. Learning from Mistakes",
+            "body": "Before showing you the future, the model 'practiced' on your old data to see where it missed. This back-testing helps ensure the final prediction is grounded in reality."
+        },
+        {
+            "header": "6. Translating to your Warehouse",
+            "body": "We turned those math predictions into real units. We calculated exactly how much 'extra' (Safety Stock) you need to avoid running out if demand spikes."
+        },
+        {
+            "header": "7. Future Confidence Zones",
+            "body": "The dotted line is our best guess, but the shaded 'glow' around it shows the safety boundaries. It tells you exactly where your demand is 95% likely to stay."
+        }
+    ]
+    return {"steps": steps}
 
 # --- JSON scrubber for NaN/Inf/Timestamp ---
 def deep_clean_json(obj):
@@ -55,6 +90,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/health")
+def health_check():
+    """Simple status check for deployment platforms."""
+    return {"status": "healthy", "timestamp": datetime.datetime.now().isoformat()}
+
 # --- Helper functions ---
 def to_int(val, default):
     if val is None or val == "":
@@ -73,10 +113,6 @@ def to_float(val, default):
         return default
 
 # --- API Routes ---
-@app.get("/health")
-def health():
-    return {"status": "ok"}
-
 @app.post("/session/start")
 def start_session():
     return {"session_id": create_session()}
@@ -192,12 +228,18 @@ def forecast(
     freq = info.get("freq", "D")
     final_sl = to_int(season_length, info.get("season_length", 7))
     final_h = to_int(horizon, final_sl * 2)
+    # Prevent horizon from exceeding available data
+    if final_h > len(df) // 2:
+        final_h = max(1, len(df) // 3)
+        
     n_windows_val = to_int(n_windows, 5)
     
     sel = [s.strip() for s in selected_series.split(",")] if selected_series else None
     
     try:
         df_sf = build_sf_dataframe(df, mapping["date_col"], mapping["value_col"], mapping.get("id_col"), sel)
+        if df_sf.empty or df_sf["unique_id"].nunique() == 0:
+            raise HTTPException(400, "No valid time series found. Check your ID column or date column.")
         df_sf["y"] = df_sf["y"].clip(lower=0)
         
         manual_params = None
@@ -264,8 +306,17 @@ def export_csv(session_id: str):
 
 @app.get("/export/pdf/{session_id}")
 def export_pdf(session_id: str):
-    # Placeholder – implement later
-    raise HTTPException(501, "PDF export not yet implemented")
+    sess = get_session(session_id)
+    if not sess.get("results"):
+        raise HTTPException(400, "Run forecast first.")
+        
+    try:
+        pdf_bytes = make_pdf_report(sess)
+        return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf",
+                                 headers={"Content-Disposition": "attachment; filename=forecast_report.pdf"})
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to generate PDF: {str(e)}")
 
 @app.get("/")
 async def serve_index():
@@ -275,5 +326,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 if __name__ == "__main__":
     import uvicorn
+    # Use environment port for deployment, default to 8000 for local runs
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=port, reload=True)
+    # In production, we usually use Gunicorn, but this helps local debugging
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=port, reload=False if os.environ.get("PORT") else True)
