@@ -1,2 +1,0 @@
-Cols to use: ['Naive', 'unique_id', 'ds', 'cutoff']
-Merged columns: Index(['unique_id', 'ds', 'cutoff', 'y', 'AutoARIMA', 'Naive'], dtype='object')
