@@ -43,7 +43,8 @@ def validate_dataframe(
         if df["_date"].isna().all():
             df["_date"] = pd.to_datetime(df[date_col], errors='coerce', dayfirst=True)
         if df["_date"].isna().all():
-            df["_date"] = pd.to_datetime(df[date_col], errors='coerce', infer_datetime_format=True)
+            # Final attempt: direct string parsing if pandas infer fails
+            df["_date"] = pd.to_datetime(df[date_col], errors='coerce', format='mixed')
             
         if df["_date"].dt.tz is not None:
             df["_date"] = df["_date"].dt.tz_localize(None)
@@ -160,7 +161,7 @@ def validate_dataframe(
                 "test_stat": test_stat,
             }
             if not is_stat:
-                warnings.append(f"Series '{series_list[0]}' is non-stationary (p={p_val:.3f}). Auto-differencing will be applied.")
+                warnings.append(f"Series '{series_list[0]}' is non-stationary (p={p_val:.3f}). Auto-differencing will be applied to stabilize trends.")
         else:
             stationarity[series_list[0]] = {"stationary": None, "p_value": None, "test_stat": None}
     except ImportError:

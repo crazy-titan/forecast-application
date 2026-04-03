@@ -179,23 +179,32 @@ def run_pipeline(
             cols_to_use = cv_base.columns.difference(cv_df.columns).tolist() + ["unique_id", "ds", "cutoff"]
             cv_df = pd.merge(cv_df, cv_base[cols_to_use], on=["unique_id", "ds", "cutoff"], how="left")
             
-            # Re-update names so evaluation loop catches them
+            # Re-update names so evaluation loop catches them. Ensure we avoid duplicates.
             present_base = [c for c in cv_base.columns if c not in ["unique_id", "ds", "cutoff", "y"]]
-            all_model_names.extend(present_base)
+            for m_name in present_base:
+                if m_name not in all_model_names:
+                    all_model_names.append(m_name)
         except Exception as e:
             results["errors"].append(f"Baseline Evaluation Bug: {str(e)[:150]}")
         
         if "unique_id" not in cv_df.columns:
             cv_df = cv_df.reset_index()
             
-        present = [m for m in all_model_names if m in cv_df.columns]
-        if present:
-            eval_df = evaluate(cv_df.drop(columns=["cutoff"], errors="ignore"), metrics=[mae,mse], models=present)
+        # Ensure unique model names for evaluate() to prevent "Expected unique column names" crash
+        unique_models = []
+        seen = set()
+        for m in all_model_names:
+            if m in cv_df.columns and m not in seen:
+                unique_models.append(m)
+                seen.add(m)
+
+        if unique_models:
+            eval_df = evaluate(cv_df.drop(columns=["cutoff"], errors="ignore"), metrics=[mae,mse], models=unique_models)
             eval_agg = eval_df.drop(columns=["unique_id"], errors="ignore").groupby("metric").mean().reset_index()
             results["eval_agg"] = eval_agg
             mae_row = eval_agg[eval_agg["metric"]=="mae"]
             if not mae_row.empty:
-                mae_vals = {k:float(v) for k,v in mae_row.iloc[0][present].items()}
+                mae_vals = {k:float(v) for k,v in mae_row.iloc[0][unique_models].items()}
                 results["best_model"] = min(mae_vals, key=mae_vals.get)
                 results["model_scores"] = mae_vals
             else: 

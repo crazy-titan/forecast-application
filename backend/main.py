@@ -140,8 +140,10 @@ def end_session(session_id: str):
 
 @app.get("/datasets")
 def list_datasets():
-    # Placeholder – can be populated with sample datasets later
-    return {"datasets": []}
+    # Return the core electricity sample by default
+    return {"datasets": [
+        {"name": "Electricity (5-Year Daily Sample)", "id": "electricity_5y"}
+    ]}
 
 @app.post("/upload")
 async def upload(file: UploadFile = File(...), session_id: str = Form(...)):
