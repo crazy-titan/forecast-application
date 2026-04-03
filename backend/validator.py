@@ -3,7 +3,6 @@ import numpy as np
 from typing import Tuple, Optional, Dict, Any
 
 def validate_file_size(size_bytes: int, max_mb: int = 10) -> Tuple[bool, Optional[str]]:
-    """Check if file size is within limit."""
     max_bytes = max_mb * 1024 * 1024
     if size_bytes > max_bytes:
         return False, f"File size exceeds {max_mb} MB limit."
@@ -15,14 +14,11 @@ def validate_dataframe(
     value_col: str,
     id_col: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """
-    Validate dataframe and return info, stationarity, warnings, series list.
-    """
     warnings = []
     info = {}
     stationarity = {}
 
-    # --- Column existence checks ---
+    # Column existence
     if date_col not in df.columns:
         raise ValueError(f"Date column '{date_col}' not found. Available: {list(df.columns)}")
     if value_col not in df.columns:
@@ -31,18 +27,20 @@ def validate_dataframe(
         warnings.append(f"ID column '{id_col}' not found – treating as single series.")
         id_col = None
 
-    # --- Date column conversion ---
+    # --- Universal date parsing ---
     try:
+        # First attempt: let pandas guess
         df["_date"] = pd.to_datetime(df[date_col], errors='coerce')
-        # Remove timezone info if present (infer_freq fails on tz-aware)
+        # If all NaT, try with dayfirst=True
+        if df["_date"].isna().all():
+            df["_date"] = pd.to_datetime(df[date_col], errors='coerce', dayfirst=True)
+        # If still all NaT, try inferring format (slower but more flexible)
+        if df["_date"].isna().all():
+            df["_date"] = pd.to_datetime(df[date_col], errors='coerce', infer_datetime_format=True)
+        # Remove timezone if present (infer_freq fails with tz-aware)
         if df["_date"].dt.tz is not None:
             df["_date"] = df["_date"].dt.tz_localize(None)
-        
-        if df["_date"].isna().all():
-            # try alternative parsing
-            df["_date"] = pd.to_datetime(df[date_col], errors='coerce', dayfirst=True)
-            if df["_date"].dt.tz is not None:
-                df["_date"] = df["_date"].dt.tz_localize(None)
+        # Drop invalid dates
         if df["_date"].isna().any():
             n_invalid = df["_date"].isna().sum()
             warnings.append(f"{n_invalid} rows with invalid dates. They will be dropped.")
@@ -54,29 +52,49 @@ def validate_dataframe(
         info["date_max"] = df["_date"].max().isoformat()
         info["date_range"] = f"{info['date_min']} → {info['date_max']}"
 
-        # Infer frequency (now timezone-naive)
+        # --- Intelligent frequency detection ---
         if len(df) > 1:
             inferred_freq = pd.infer_freq(df["_date"])
             if inferred_freq:
                 info["freq"] = inferred_freq
-                freq_labels = {
-                    "D": "Daily", "W": "Weekly", "M": "Monthly",
-                    "Q": "Quarterly", "H": "Hourly", "Y": "Yearly"
-                }
+                freq_labels = {"D": "Daily", "W": "Weekly", "M": "Monthly", "Q": "Quarterly",
+                               "H": "Hourly", "Y": "Yearly", "MS": "Monthly start", "W-MON": "Weekly"}
                 info["freq_label"] = freq_labels.get(inferred_freq, inferred_freq)
             else:
-                info["freq"] = "D"
-                info["freq_label"] = "Daily (assumed)"
+                # Fallback: guess from median difference
+                diffs = df["_date"].diff().dropna()
+                median_days = diffs.dt.days.median()
+                if median_days == 1:
+                    info["freq"] = "D"
+                    info["freq_label"] = "Daily"
+                elif 7 <= median_days <= 8:
+                    info["freq"] = "W"
+                    info["freq_label"] = "Weekly"
+                elif 28 <= median_days <= 31:
+                    info["freq"] = "M"
+                    info["freq_label"] = "Monthly"
+                elif 89 <= median_days <= 92:
+                    info["freq"] = "Q"
+                    info["freq_label"] = "Quarterly"
+                else:
+                    info["freq"] = "D"
+                    info["freq_label"] = "Unknown (treated as daily)"
         else:
             info["freq"] = "D"
-            info["freq_label"] = "Daily (assumed)"
+            info["freq_label"] = "Daily (single observation)"
     except Exception as e:
         sample_vals = df[date_col].head(10).tolist()
         raise ValueError(f"Date column '{date_col}' parsing failed. Samples: {sample_vals}. Error: {e}")
 
     # --- Value column conversion ---
     try:
-        df["_value"] = pd.to_numeric(df[value_col], errors="coerce")
+        if df[value_col].dtype == "object":
+            # Remove anything that isn't a digit, decimal, or negative sign
+            val_clean = df[value_col].astype(str).str.replace(r'[^\d\.-]', '', regex=True)
+            df["_value"] = pd.to_numeric(val_clean, errors="coerce")
+        else:
+            df["_value"] = pd.to_numeric(df[value_col], errors="coerce")
+            
         if df["_value"].isna().all():
             raise ValueError(f"Value column '{value_col}' contains no numeric data.")
         n_nan = df["_value"].isna().sum()
@@ -98,18 +116,21 @@ def validate_dataframe(
         info["n_series"] = 1
 
     info["n_rows"] = len(df)
-    # Simple season length heuristic
+
+    # --- Season length inference based on frequency ---
     freq = info.get("freq", "D")
-    if freq == "D":
-        info["season_length"] = 7
-    elif freq == "W":
-        info["season_length"] = 52
-    elif freq == "M":
+    if freq in ["D", "H", "T", "S"]:
+        info["season_length"] = 7   # weekly seasonality
+    elif freq in ["W", "W-MON"]:
+        info["season_length"] = 52  # yearly
+    elif freq in ["M", "MS"]:
         info["season_length"] = 12
+    elif freq in ["Q", "Q-DEC"]:
+        info["season_length"] = 4
     else:
         info["season_length"] = 7
 
-    # --- Stationarity test (ADF) on first series ---
+    # --- Stationarity test with numpy type conversion ---
     try:
         from statsmodels.tsa.stattools import adfuller
         if id_col and len(series_list) > 1:
@@ -118,12 +139,13 @@ def validate_dataframe(
             first_vals = df["_value"].dropna()
         if len(first_vals) > 5:
             adf = adfuller(first_vals, autolag="AIC")
-            p_val = adf[1]
-            is_stat = p_val < 0.05
+            p_val = float(adf[1])
+            test_stat = float(adf[0])
+            is_stat = bool(p_val < 0.05)
             stationarity[series_list[0]] = {
                 "stationary": is_stat,
                 "p_value": p_val,
-                "test_stat": adf[0]
+                "test_stat": test_stat,
             }
             if not is_stat:
                 warnings.append(f"Series '{series_list[0]}' is non-stationary (p={p_val:.3f}). Auto-differencing will be applied.")
