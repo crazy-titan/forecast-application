@@ -235,15 +235,15 @@ def run_pipeline(
             diff = (f_mean - h_last) / (h_last + 1e-6)
             
             if diff > 0.05:
-                results["dashboard_summary"] = f"📈 Upward Trend Detected: Demand is predicted to rise by approximately {abs(diff)*100:.1f}%. Recommendation: Review safety stock levels for upcoming peaks."
+                results["dashboard_summary"] = f"Upward Trend Detected: Demand is predicted to rise by approximately {abs(diff)*100:.1f}%. Recommendation: Review safety stock levels for upcoming peaks."
             elif diff < -0.05:
-                results["dashboard_summary"] = f"📉 Downward Trend Detected: Demand is easing by {abs(diff)*100:.1f}%. Recommendation: Monitor inventory to prevent overstocking."
+                results["dashboard_summary"] = f"Downward Trend Detected: Demand is easing by {abs(diff)*100:.1f}%. Recommendation: Monitor inventory to prevent overstocking."
             else:
-                results["dashboard_summary"] = "⚖️ Stable Demand Predicted: Market signals show consistent patterns. Recommendation: Maintain current reorder points and focus on lead-time efficiency."
+                results["dashboard_summary"] = "Stable Demand Predicted: Market signals show consistent patterns. Recommendation: Maintain current reorder points and focus on lead-time efficiency."
         else:
-            results["dashboard_summary"] = "🔍 Stable Market Conditions: The AI has identified a consistent baseline across your series history."
+            results["dashboard_summary"] = "Stable Market Conditions: The tool has identified a consistent baseline across your series history."
     except:
-        results["dashboard_summary"] = "⚡ Turbo Engine Active: Securely processing your high-capacity series results."
+        results["dashboard_summary"] = "Processing Mode Active: Securely analyzing your high-capacity series results."
 
     return results
 
