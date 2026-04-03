@@ -594,7 +594,11 @@ function renderTrustScore(data) {
   } else {
     // Core formula: how small is the error relative to average demand?
     trust = Math.max(0, Math.min(100, Math.round((1 - maeval / avg) * 100)));
-    if (trust >= 85) {
+    if (isNaN(trust)) {
+      label   = "Cannot compute";
+      color   = "#FF9800";
+      desc    = "Score unavailable — errors were detected during statistical validation.";
+    } else if (trust >= 85) {
       label = `${trust}% Reliable`; color = "#00E676";
       desc  = "Excellent accuracy. This forecast is highly trustworthy for business decisions.";
     } else if (trust >= 65) {
@@ -875,8 +879,14 @@ function renderForecastChart(data) {
 
 function renderComparisonChart(data) {
   const scores = data.model_scores || {};
-  const best = data.best_model;
+  const best = data.best_model || "None";
   const sorted = Object.entries(scores).sort((a, b) => a[1] - b[1]);
+  
+  if (sorted.length === 0) {
+    document.getElementById("comparisonChart").innerHTML = `<div class="chart-empty-msg">Fallback model used — no comparative metrics available for this dataset size.</div>`;
+    return;
+  }
+
   Plotly.newPlot("comparisonChart", [{
     type: "bar",
     orientation: "h",

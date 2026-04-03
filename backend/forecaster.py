@@ -144,43 +144,34 @@ def run_pipeline(
     # ── 3. TOURNAMENT (CROSS-VALIDATION) ──────────────────────────────────
     try:
         actual_windows = min(n_windows, max(1, len(train)//(horizon*2)))
-        adv_instances = [m for m in all_models if type(m).__name__ not in ("Naive", "HistoricAverage", "SeasonalNaive")]
-        base_instances = [m for m in all_models if type(m).__name__ in ("Naive", "HistoricAverage", "SeasonalNaive")]
         all_model_names = [m.alias if hasattr(m,'alias') else m.__class__.__name__ for m in all_models]
         
-        cv_dfs = []
-        if adv_instances:
-            sf_adv = StatsForecast(models=adv_instances, freq=freq, n_jobs=1)
-            cv_adv = sf_adv.cross_validation(h=horizon, df=df_sf, n_windows=actual_windows, step_size=horizon, refit=False)
-            cv_dfs.append(cv_adv.reset_index() if "unique_id" not in cv_adv.columns else cv_adv)
+        # Consolidate for CV to avoid 'forward' attribute errors in Naive models
+        sf_cv = StatsForecast(models=all_models, freq=freq, n_jobs=1)
+        cv_df = sf_cv.cross_validation(h=horizon, df=df_sf, n_windows=actual_windows, step_size=horizon, refit=False)
         
-        if base_instances:
-            sf_base = StatsForecast(models=base_instances, freq=freq, n_jobs=1)
-            cv_base = sf_base.cross_validation(h=horizon, df=df_sf, n_windows=actual_windows, step_size=horizon, refit=False)
-            cv_dfs.append(cv_base.reset_index() if "unique_id" not in cv_base.columns else cv_base)
-
-        if cv_dfs:
-            cv_df = pd.concat(cv_dfs, axis=1)
-            cv_df = cv_df.loc[:,~cv_df.columns.duplicated()].copy()
-            present = [m for m in all_model_names if m in cv_df.columns]
-            if present:
-                eval_df = evaluate(cv_df.drop(columns=["cutoff"], errors="ignore"), metrics=[mae,mse], models=present)
-                eval_agg = eval_df.drop(columns=["unique_id"], errors="ignore").groupby("metric").mean().reset_index()
-                results["eval_agg"] = eval_agg
-                mae_row = eval_agg[eval_agg["metric"]=="mae"]
-                if not mae_row.empty:
-                    mae_vals = {k:float(v) for k,v in mae_row.iloc[0][present].items()}
-                    results["best_model"] = min(mae_vals, key=mae_vals.get)
-                    results["model_scores"] = mae_vals
-                else: 
-                    results["best_model"] = "SeasonalNaive"
+        if "unique_id" not in cv_df.columns:
+            cv_df = cv_df.reset_index()
+            
+        present = [m for m in all_model_names if m in cv_df.columns]
+        if present:
+            eval_df = evaluate(cv_df.drop(columns=["cutoff"], errors="ignore"), metrics=[mae,mse], models=present)
+            eval_agg = eval_df.drop(columns=["unique_id"], errors="ignore").groupby("metric").mean().reset_index()
+            results["eval_agg"] = eval_agg
+            mae_row = eval_agg[eval_agg["metric"]=="mae"]
+            if not mae_row.empty:
+                mae_vals = {k:float(v) for k,v in mae_row.iloc[0][present].items()}
+                results["best_model"] = min(mae_vals, key=mae_vals.get)
+                results["model_scores"] = mae_vals
+            else: 
+                results["best_model"] = "SeasonalNaive"
         
         # Cleanup memory after CV spike
-        del cv_dfs, cv_df
+        del cv_df
         gc.collect()
                     
     except Exception as e:
-        results["errors"].append(f"Diagnostic Report: Tournament failed ({str(e)[:50]}). Using fallback.")
+        results["errors"].append(f"Diagnostic Report: Tournament failed ({str(e)[:100]}). Using fallback.")
         results["best_model"] = "SeasonalNaive"
         results["model_scores"] = {}
         results["eval_agg"] = pd.DataFrame()
@@ -188,7 +179,10 @@ def run_pipeline(
     # Residuals
     try:
         col = results.get("best_model", "SeasonalNaive")
-        # Reuse point_preds for basic residuals check if fitting failed
+        # Ensure 'col' is actually in predictions
+        if col not in point_preds.columns:
+            col = point_preds.columns[-1]
+            
         resid = train.groupby("unique_id").tail(1)["y"].values[0] - point_preds[col].values[0]
         results["residuals"] = {"values": [float(resid)], "dates": [str(point_preds["ds"].iloc[0])]}
         results["ljung_box"] = {"pass": True, "message": "Memory-Efficient residuals used."}
@@ -196,7 +190,22 @@ def run_pipeline(
         results["residuals"] = None
         results["ljung_box"] = {"pass": None, "message": "Residual check skipped for RAM safety."}
 
-    results["history"] = {uid: grp[["ds","y"]].assign(ds=grp["ds"].astype(str)).to_dict("records") for uid, grp in df_sf.groupby("unique_id")}
+    # ── 4. CHART DECIMATION (Browser Speed Guard) ────────────────────────
+    # Sending 10,000 points lags the browser. We decimate the history for rendering.
+    history_dict = {}
+    for uid, grp in df_sf.groupby("unique_id"):
+        # If series is too long, sample it for Plotly
+        if len(grp) > 800:
+            # We take the most recent 600 points + a sparse sample of the rest
+            recent = grp.tail(600)
+            older = grp.iloc[:-600].iloc[::5] # Every 5th point for older data
+            display_grp = pd.concat([older, recent]).sort_values("ds")
+        else:
+            display_grp = grp
+            
+        history_dict[uid] = display_grp[["ds","y"]].assign(ds=display_grp["ds"].astype(str)).to_dict("records")
+
+    results["history"] = history_dict
     results["horizon"] = horizon
     results["season_length"] = season_length
     results["freq"] = freq
