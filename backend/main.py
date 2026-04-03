@@ -6,6 +6,7 @@ import io
 import sys
 import datetime
 import traceback
+import gc
 import pandas as pd
 import numpy as np
 from typing import Optional, Dict, Any
@@ -180,30 +181,37 @@ def map_columns(
     if not path or not os.path.exists(path):
         raise HTTPException(400, "No file found. Upload first.")
     
-    df = pd.read_csv(path)
-    actual_cols = list(df.columns)
+    # ── 1. LAZY LOADING: Only read headers to check mapping ───────────────
+    # For large datasets (e.g. 100MB+), reading the whole file here OOMs Render.
+    df_headers = pd.read_csv(path, nrows=10) 
+    actual_cols = list(df_headers.columns)
     
     def find(col):
-        if col in actual_cols:
-            return col
+        if col in actual_cols: return col
         for c in actual_cols:
-            if c.lower() == col.lower():
-                return c
+            if c.lower() == str(col).lower(): return c
         return None
     
     final_date = find(date_col)
     final_value = find(value_col)
     final_id = find(id_col) if id_col else None
     
-    if not final_date:
-        raise HTTPException(400, f"Date column '{date_col}' not found. Columns: {actual_cols}")
-    if not final_value:
-        raise HTTPException(400, f"Value column '{value_col}' not found. Columns: {actual_cols}")
-    
+    if not final_date: raise HTTPException(400, f"Date column '{date_col}' missing.")
+    if not final_value: raise HTTPException(400, f"Value column '{value_col}' missing.")
+
+    # ── 2. SAMPLED VALIDATION: Don't validate 1 million rows yet ─────────
+    # We read a statistical sample (5,000 rows) to detect seasonality/types.
     try:
-        validation = validate_dataframe(df, final_date, final_value, final_id)
+        # We read a slightly larger chunk from the middle/start to be representative
+        df_sample = pd.read_csv(path, nrows=5000)
+        validation = validate_dataframe(df_sample, final_date, final_value, final_id)
+        # Cleanup sample from memory
+        del df_sample
+        gc.collect() 
     except ValueError as e:
         raise HTTPException(422, detail=str(e))
+    except Exception as e:
+        raise HTTPException(422, detail=f"Diagnostic error: {str(e)}")
     
     mapping = {"date_col": final_date, "value_col": final_value, "id_col": final_id}
     update_session(session_id, "mapping", mapping)
@@ -232,7 +240,14 @@ def forecast(
     if not path or not mapping or not validation:
         raise HTTPException(400, "Incomplete session. Upload and map first.")
     
-    df = pd.read_csv(path)
+    # ── 3. SELECTIVE LOADING: Only load the columns needed for math ──────
+    # Electricity datasets often have dozens of unused columns. Loading them all OOMs.
+    use_cols = [mapping["date_col"], mapping["value_col"]]
+    if mapping.get("id_col"):
+        use_cols.append(mapping["id_col"])
+    
+    df = pd.read_csv(path, usecols=use_cols)
+    gc.collect()
     info = validation.get("info", {})
     freq = info.get("freq", "D")
     final_sl = to_int(season_length, info.get("season_length", 7))
