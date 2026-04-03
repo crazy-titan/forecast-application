@@ -19,5 +19,9 @@ COPY . .
 ENV PORT=8000
 EXPOSE 8000
 
-# Shell form ensures $PORT expansion
-CMD gunicorn -w 4 -k uvicorn.workers.UvicornWorker backend.main:app --bind 0.0.0.0:${PORT}
+# Optimized for Render (512MB-1GB RAM):
+# --workers 1: Reduces memory footprint (statsforecast is memory-heavy)
+# --threads 2: Allows some concurrency without multiple full processes
+# --timeout 120: Gives extra time for heavy initial imports/setup
+# --preload: Loads app once in master process to share memory between workers
+CMD gunicorn -w 1 --threads 2 --timeout 120 --preload -k uvicorn.workers.UvicornWorker backend.main:app --bind 0.0.0.0:${PORT}
