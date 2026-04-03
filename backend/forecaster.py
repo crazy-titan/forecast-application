@@ -12,7 +12,7 @@ ON_RENDER = os.environ.get("RENDER") == "true"
 from statsforecast import StatsForecast
 from statsforecast.models import (
     Naive, HistoricAverage, SeasonalNaive, 
-    AutoETS, DynamicOptimizedTheta
+    AutoETS, DynamicOptimizedTheta, AutoARIMA
 )
 from utilsforecast.losses import mae, mse
 from utilsforecast.evaluation import evaluate
@@ -101,41 +101,60 @@ def run_pipeline(
     baseline = [Naive(), SeasonalNaive(season_length=season_length)]
     historic_avg = HistoricAverage()
     
-    # In High-Speed Mode (Big Data), skip AutoARIMA/SARIMA
-    if is_massive:
-        all_models = baseline + [historic_avg]
-        results["errors"].append("Notice: Heavy statistical models (AutoARIMA) skipped to maintain memory stability.")
+    if mode == "auto":
+        # AI models use the larger 2,000-observation window for high-performance forecasting
+        theta = DynamicOptimizedTheta(season_length=season_length)
+        ets = AutoETS(season_length=season_length)
+        
+        # Presentation models use a capped 500-observation window to stay fast
+        arima = AutoARIMA(season_length=1, alias="ARIMA")
+        sarima = AutoARIMA(season_length=season_length, alias="SARIMA")
+        all_models = baseline + [historic_avg, theta, ets, arima, sarima]
     else:
-        if mode == "auto":
-            # DynamicOptimizedTheta and AutoETS are 10x faster than ARIMA.
-            theta = DynamicOptimizedTheta(season_length=season_length)
-            ets = AutoETS(season_length=season_length)
-            all_models = baseline + [historic_avg, theta, ets]
-        else:
-            # Manual mode defaults to a reliable ETS/Baseline combination
-            ets_manual = AutoETS(season_length=season_length)
-            all_models = baseline + [historic_avg, ets_manual]
+        # Manual mode defaults to a reliable ETS/Baseline combination
+        ets_manual = AutoETS(season_length=season_length)
+        all_models = baseline + [historic_avg, ets_manual]
 
-    # Fit
-    # Render (512MB RAM): 350 points to prevent OOM
-    # Localhost (Turbo): 2,000 points balance speed and 5-year history analysis
+    # Fit Track 1: Production AI (2,000 points)
     train_ai = df_sf.groupby("unique_id").tail(350 if ON_RENDER else 2000).reset_index(drop=True)
+    
+    # Fit Track 2: Presentation ARIMA/SARIMA (Capped at 500 for Speed)
+    # Using 500 points allows AutoARIMA to finish in seconds rather than minutes.
+    train_presentation = df_sf.groupby("unique_id").tail(350 if ON_RENDER else 500).reset_index(drop=True)
     try:
-        sf = StatsForecast(models=all_models, freq=freq, n_jobs=-1 if not ON_RENDER else 1)
-        sf.fit(train_ai)
+        # ── 3. DUAL-TRACK FITTING ──────────────────────────────────────────
+        # Track 1: Production AI (Theta, ETS, Baselines)
+        core_models = baseline + [historic_avg, theta, ets] if mode == "auto" else baseline + [historic_avg, ets_manual]
+        sf_core = StatsForecast(models=core_models, freq=freq, n_jobs=-1 if not ON_RENDER else 1)
+        sf_core.fit(train_ai)
+        
+        # Track 2: Presentation Models (ARIMA, SARIMA)
+        if mode == "auto":
+            presentation_models = [arima, sarima]
+            sf_pres = StatsForecast(models=presentation_models, freq=freq, n_jobs=-1 if not ON_RENDER else 1)
+            sf_pres.fit(train_presentation)
+        
     except Exception as e:
         results["errors"].append(f"Model Engine Warning: {str(e)[:100]}. Falling back to Baseline.")
-        sf = StatsForecast(models=baseline, freq=freq, n_jobs=-1 if not ON_RENDER else 1)
-        sf.fit(train_ai)
-        all_models = baseline
+        sf_core = StatsForecast(models=baseline, freq=freq, n_jobs=-1 if not ON_RENDER else 1)
+        sf_core.fit(train_ai)
+        core_models = baseline
+        sf_pres = None
 
-    # Predictions
-    point_preds = sf.predict(h=horizon)
+    # Combine Predictions
+    point_preds = sf_core.predict(h=horizon)
     try:
-        prob_preds = sf.predict(h=horizon, level=[80, 95])
+        prob_preds = sf_core.predict(h=horizon, level=[80, 95])
     except:
         prob_preds = point_preds
-        results["errors"].append("Notice: High/Low confidence zones unavailable for this item.")
+        
+    if mode == "auto" and sf_pres:
+        try:
+            pp_pres = sf_pres.predict(h=horizon, level=[80, 95])
+            point_preds = pd.merge(point_preds, pp_pres[[c for c in pp_pres.columns if c not in ["unique_id","ds"] and not c.endswith(("-lo-80","-hi-80","-lo-95","-hi-95"))]], on=["unique_id","ds"], how="left")
+            prob_preds = pd.merge(prob_preds, pp_pres, on=["unique_id","ds"], how="left")
+        except:
+            pass
     
     results["point_preds"] = point_preds
     results["prob_preds"] = prob_preds
@@ -157,14 +176,25 @@ def run_pipeline(
         if not cv_models:
             raise ValueError("No models available for CV backtest.")
 
-        sf_cv = StatsForecast(models=cv_models, freq=freq, n_jobs=-1 if not ON_RENDER else 1)
-        try:
-            # Using refit=False is the most critical speed optimization for Cross-Validation.
-            # It trains once and moves the window, instead of retraining at every step.
-            cv_df = sf_cv.cross_validation(h=horizon, df=train_ai, n_windows=actual_windows, step_size=horizon, refit=False)
-        except Exception as e:
-            results["errors"].append(f"Model Evaluation Sync Warning: {str(e)[:150]}")
-            cv_df = None
+        # ── 4. DUAL-TRACK TOURNAMENT ──────────────────────────────────────
+        # Tournament Track 1: AI & Baselines
+        sf_cv_core = StatsForecast(models=copy.deepcopy(core_models), freq=freq, n_jobs=-1 if not ON_RENDER else 1)
+        cv_df = sf_cv_core.cross_validation(h=horizon, df=train_ai, n_windows=actual_windows, step_size=horizon, refit=False)
+        
+        # Tournament Track 2: ARIMA/SARIMA (Presentation)
+        if mode == "auto" and sf_pres:
+            try:
+                sf_cv_pres = StatsForecast(models=copy.deepcopy(presentation_models), freq=freq, n_jobs=-1 if not ON_RENDER else 1)
+                cv_pres = sf_cv_pres.cross_validation(h=horizon, df=train_presentation, n_windows=actual_windows, step_size=horizon, refit=False)
+                
+                # Merge into main tournament results
+                if "unique_id" not in cv_pres.columns: cv_pres = cv_pres.reset_index()
+                if "unique_id" not in cv_df.columns: cv_df = cv_df.reset_index()
+                
+                cols_to_use = cv_pres.columns.difference(cv_df.columns).tolist() + ["unique_id", "ds", "cutoff"]
+                cv_df = pd.merge(cv_df, cv_pres[cols_to_use], on=["unique_id", "ds", "cutoff"], how="left")
+            except:
+                pass
         
         if cv_df is None or cv_df.empty:
             raise ValueError("Cross-validation produced no results.")
