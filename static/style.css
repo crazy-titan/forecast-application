@@ -98,9 +98,72 @@ a:hover { color: #fff; text-shadow: var(--shadow-glow); }
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--glass-border);
-    border-radius: 24px;
-    box-shadow: var(--shadow-glass);
+    border-radius: var(--radius-md);
+    transition: 0.3s ease;
 }
+
+/* Final Polish: Turbo Badge */
+.turbo-badge {
+    background: linear-gradient(135deg, #FFD600, #FF6D00);
+    color: #000;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-left: 10px;
+    text-transform: uppercase;
+    box-shadow: 0 0 15px rgba(255, 214, 0, 0.4);
+    animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+    0% { box-shadow: 0 0 5px rgba(255, 214, 0, 0.4); }
+    50% { box-shadow: 0 0 20px rgba(255, 214, 0, 0.7); }
+    100% { box-shadow: 0 0 5px rgba(255, 214, 0, 0.4); }
+}
+
+/* Final Polish: Welcome Guide */
+.welcome-guide {
+    margin-top: -3rem;
+    position: relative;
+    z-index: 10;
+}
+.guide-box {
+    padding: 2rem;
+    border: 1px solid var(--accent-cyan);
+    box-shadow: var(--shadow-glow);
+}
+.guide-steps {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    gap: 1rem;
+}
+.g-step {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.g-icon { font-size: 2rem; }
+.g-text strong { display: block; color: var(--accent-cyan); font-size: 1rem; }
+.g-text span { font-size: 0.85rem; color: var(--text-secondary); }
+.g-arrow { font-size: 1.5rem; color: var(--text-muted); }
+
+/* Final Polish: Executive Summary */
+.exec-summary-wrap {
+    margin-bottom: 2rem;
+}
+.exec-card {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem 2rem;
+    border-left: 4px solid var(--accent-cyan);
+    background: linear-gradient(90deg, rgba(0, 229, 255, 0.05), transparent);
+}
+.exec-icon { font-size: 2.5rem; filter: drop-shadow(0 0 10px var(--accent-cyan)); }
+.exec-content h4 { margin-bottom: 0.2rem; color: var(--accent-cyan); text-transform: uppercase; font-size: 0.9rem; letter-spacing: 0.1em; }
+.exec-summary-wrap p { font-size: 1.2rem; font-weight: 500; color: #fff; }
 
 /* Step Badges */
 .step-badge {

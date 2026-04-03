@@ -367,7 +367,8 @@ def forecast(
             "ljung_box": results.get("ljung_box"),
             "supply_chain": sc,
             "theory": get_theory(results, validation),
-            "warnings": results.get("errors",[]) + validation.get("warnings",[])
+            "warnings": results.get("errors",[]) + validation.get("warnings",[]),
+            "dashboard_summary": results.get("dashboard_summary", "")
         }
         
         update_session(session_id, "results", response)

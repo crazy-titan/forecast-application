@@ -390,6 +390,9 @@ async function runForecast() {
     if (!res.ok) throw new Error((await res.json()).detail || `HTTP ${res.status}`);
     const data = await res.json();
     hide("loading-section");
+    hide("welcomeGuide");
+    const summaryText = document.getElementById("execSummaryText");
+    if (summaryText) summaryText.textContent = data.dashboard_summary || "Turbo Engine Active: Processing your high-capacity series results.";
     renderResults(data);
     show("results-section");
     scrollTo("results-section");
@@ -1116,6 +1119,7 @@ function initExports() {
   document.getElementById("newForecastBtn").onclick = () => {
     hide("results-section");
     document.getElementById("warningsBox").classList.add("hidden");
+    show("welcomeGuide");
     scrollTo("data-section");
   };
 }

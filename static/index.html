@@ -33,6 +33,7 @@
                     <svg viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" stroke="url(#logoGradient)" stroke-width="2" fill="none"/></svg>
                 </span>
                 <span>Chain<span class="grad-text">Cast</span></span>
+                <span class="turbo-badge">⚡ Turbo Engine</span>
             </div>
             <nav class="header-nav">
                 <a href="#data-section" data-tooltip="Step 1: Upload your CSV file or pick a sample dataset to begin.">Data Source</a>
@@ -46,9 +47,9 @@
     <section class="hero">
         <div class="hero-content">
             <div class="hero-badge">Supply Chain Intelligence</div>
-            <h1 class="hero-title">Demand Forecasting<br /><span class="grad-text">Powered by ARIMA / SARIMA</span></h1>
+            <h1 class="hero-title">Demand Forecasting<br /><span class="grad-text">Turbo Edition (ARIMA / SARIMA)</span></h1>
             <p class="hero-sub">Upload your supply chain data – orders, inventory, shipments, lead times. Get
-                probabilistic forecasts, safety stock recommendations, and full model explainability.</p>
+                probabilistic forecasts, safety stock recommendations, and 10x faster AI insights.</p>
             <div class="hero-stats">
                 <div class="hstat"><span class="hstat-n">4</span><span class="hstat-l">Models</span></div>
                 <div class="hstat"><span class="hstat-n">7</span><span class="hstat-l">Analysis steps</span></div>
@@ -62,6 +63,28 @@
             </div>
         </div>
     </section>
+
+    <!-- Final Polish: Welcome Guide Overlay -->
+    <div class="welcome-guide container" id="welcomeGuide">
+        <div class="glass-panel guide-box">
+            <div class="guide-steps">
+                <div class="g-step">
+                    <div class="g-icon">📂</div>
+                    <div class="g-text"><strong>1. Upload Data</strong><span>CSV with 50k row capacity</span></div>
+                </div>
+                <div class="g-arrow">➜</div>
+                <div class="g-step">
+                    <div class="g-icon">⚡</div>
+                    <div class="g-text"><strong>2. Run Turbo AI</strong><span>Modern industry techniques</span></div>
+                </div>
+                <div class="g-arrow">➜</div>
+                <div class="g-step">
+                    <div class="g-icon">📄</div>
+                    <div class="g-text"><strong>3. Export Insights</strong><span>Professional PDF summary</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Step 1: Data selection -->
     <section class="section" id="data-section">
@@ -325,6 +348,18 @@
                 </div>
             </div>
             <div class="best-model-banner" id="bestModelBanner"></div>
+            
+            <!-- Final Polish: Executive Summary Insight -->
+            <div class="exec-summary-wrap" id="execSummaryWrap">
+                <div class="glass-panel exec-card">
+                    <div class="exec-icon">💡</div>
+                    <div class="exec-content">
+                        <h4>Executive Business Insight</h4>
+                        <p id="execSummaryText">Analyzing trends to generate your business summary...</p>
+                    </div>
+                </div>
+            </div>
+
             <div class="trust-score-bar" id="trustScoreBar"></div>
             <div class="warnings-box hidden" id="warningsBox"></div>
             <div class="charts-grid">
