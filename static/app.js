@@ -42,7 +42,8 @@ function initTheme() {
 
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
-  document.getElementById("themeToggle").textContent = theme === "dark" ? "🌙" : "☀️";
+  const toggle = document.getElementById("themeToggle");
+  if (toggle) toggle.textContent = theme === "dark" ? "Light" : "Dark";
   localStorage.setItem("theme", theme);
 }
 
@@ -491,19 +492,19 @@ function showDataReport(data) {
   // Build rows
   const reportSections = [
     {
-      icon: "✅", title: "What We Processed",
+      icon: "[+]", title: "What We Processed",
       color: "#00E676",
       rows: [
         ["Total data rows used", `${totalRows.toLocaleString()} rows`],
-        ["Unique series forecasted", `${series.join(", ") || "—"}`],
-        ["Historical date range", `${dateMin} → ${dateMax}`],
+        ["Unique series forecasted", `${series.join(", ") || "\u2014"}`],
+        ["Historical date range", `${dateMin} \u2192 ${dateMax}`],
         ["Forecast periods generated", `${forecastRows} future time steps`],
-        ["Best model selected", data.best_model || "—"],
+        ["Best model selected", data.best_model || "\u2014"],
         ["Avg demand / period", `${sc.avg_demand_per_period || 0} units`],
       ]
     },
     {
-      icon: "🔧", title: "Automatic Adjustments Applied",
+      icon: "[*]", title: "Automatic Adjustments Applied",
       color: "#FFD600",
       rows: [
         ["Duplicate timestamps", "Auto-resolved via mean aggregation (prevents engine crash)"],
@@ -513,17 +514,17 @@ function showDataReport(data) {
       ]
     },
     ...(skippedWarnings.length ? [{
-      icon: "⚠️", title: "What Was Skipped or Ignored",
+      icon: "[!]", title: "What Was Skipped or Ignored",
       color: "#FF9800",
       rows: skippedWarnings.map(w => ["Skipped", w])
     }] : []),
     ...(dataWarnings.length ? [{
-      icon: "ℹ️", title: "Data Quality Notices",
+      icon: "[i]", title: "Data Quality Notices",
       color: "#FF1744",
       rows: dataWarnings.map(w => ["Notice", w])
     }] : []),
     {
-      icon: "📊", title: "Supply Chain Parameters Used",
+      icon: "[~]", title: "Supply Chain Parameters Used",
       color: "#9D4EDD",
       rows: [
         ["Service level target", `${sc.service_level_pct || 95}%`],

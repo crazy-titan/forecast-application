@@ -25,7 +25,7 @@ def build_sf_dataframe(
     selected: Optional[List[str]] = None,
 ) -> pd.DataFrame:
     out = pd.DataFrame()
-    out["ds"] = pd.to_datetime(df[date_col])
+    out["ds"] = pd.to_datetime(df[date_col], errors="coerce")
     
     if df[value_col].dtype == "object":
         val_clean = df[value_col].astype(str).str.replace(r'[^\d\.-]', '', regex=True)
@@ -34,11 +34,15 @@ def build_sf_dataframe(
         out["y"] = pd.to_numeric(df[value_col], errors="coerce")
     
     if id_col and id_col in df.columns:
-        out["unique_id"] = df[id_col].astype(str).values
+        # Strip whitespace and hidden characters from IDs to prevent DuckDB pattern-match failures
+        out["unique_id"] = df[id_col].astype(str).str.strip().str.replace(r'[\x00-\x1f\x7f]', '', regex=True)
         if out["unique_id"].str.lower().isin(["nan", "none", ""]).all():
             out["unique_id"] = "Series_1"
     else:
         out["unique_id"] = "Series_1"
+    
+    # Drop rows where the date couldn't be parsed
+    out = out.dropna(subset=["ds"])
     
     # --- Duplicate Resolution ---
     if out.duplicated(subset=["unique_id", "ds"]).any():
@@ -198,8 +202,10 @@ def run_pipeline(
             col = point_preds.columns[-1]
             
         resid = train.groupby("unique_id").tail(1)["y"].values[0] - point_preds[col].values[0]
-        results["residuals"] = {"values": [float(resid)], "dates": [str(point_preds["ds"].iloc[0])]}
-        results["ljung_box"] = {"pass": True, "message": "Memory-Efficient residuals used."}
+        # Use strict ISO format to prevent pattern-match failures in the JSON response
+        resid_date = pd.Timestamp(point_preds["ds"].iloc[0]).isoformat()
+        results["residuals"] = {"values": [float(resid)], "dates": [resid_date]}
+        results["ljung_box"] = {"pass": True, "message": "Memory-efficient residuals used."}
     except:
         results["residuals"] = None
         results["ljung_box"] = {"pass": None, "message": "Residual check skipped for RAM safety."}
@@ -217,7 +223,10 @@ def run_pipeline(
         else:
             display_grp = grp
             
-        history_dict[uid] = display_grp[["ds","y"]].assign(ds=display_grp["ds"].astype(str)).to_dict("records")
+        history_dict[uid] = [
+            {"ds": pd.Timestamp(row["ds"]).isoformat(), "y": float(row["y"])}
+            for _, row in display_grp[["ds", "y"]].iterrows()
+        ]
 
     results["history"] = history_dict
     results["horizon"] = horizon
