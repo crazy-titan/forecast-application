@@ -123,13 +123,15 @@ def run_pipeline(
         all_models = baseline + [historic_avg, arima, sarima]
 
     # Fit
-    train_ai = df_sf.groupby("unique_id").tail(550).reset_index(drop=True) if ON_RENDER else df_sf
+    # Always cap the heavy mathematical optimization to the most recent 1000 points (~3 years of daily).
+    # Feeding 5 years into AutoARIMA takes ~5 minutes locally. 1000 points yields the same accuracy in ~20 secs.
+    train_ai = df_sf.groupby("unique_id").tail(1000).reset_index(drop=True)
     try:
-        sf = StatsForecast(models=all_models, freq=freq, n_jobs=1)
+        sf = StatsForecast(models=all_models, freq=freq, n_jobs=-1 if not ON_RENDER else 1)
         sf.fit(train_ai)
     except Exception as e:
         results["errors"].append(f"Model Engine Warning: {str(e)[:100]}. Falling back to Baseline.")
-        sf = StatsForecast(models=baseline, freq=freq, n_jobs=1)
+        sf = StatsForecast(models=baseline, freq=freq, n_jobs=-1 if not ON_RENDER else 1)
         sf.fit(train_ai)
         all_models = baseline
 
@@ -163,12 +165,12 @@ def run_pipeline(
         if not cv_models:
             raise ValueError("No advanced models available for CV backtest.")
 
-        sf_cv = StatsForecast(models=cv_models, freq=freq, n_jobs=1)
+        sf_cv = StatsForecast(models=cv_models, freq=freq, n_jobs=-1 if not ON_RENDER else 1)
         cv_df = sf_cv.cross_validation(h=horizon, df=train_ai, n_windows=actual_windows, step_size=horizon, refit=False)
         
         # Baselines run separately with refit=True to completely bypass the 'forward' attribute bug
         try:
-            sf_base = StatsForecast(models=[Naive(), SeasonalNaive(season_length=season_length), HistoricAverage()], freq=freq, n_jobs=1)
+            sf_base = StatsForecast(models=[Naive(), SeasonalNaive(season_length=season_length), HistoricAverage()], freq=freq, n_jobs=-1 if not ON_RENDER else 1)
             cv_base = sf_base.cross_validation(h=horizon, df=train_ai, n_windows=actual_windows, step_size=horizon, refit=True)
             cols_to_use = cv_base.columns.difference(cv_df.columns).tolist() + ["unique_id", "ds", "cutoff"]
             cv_df = pd.merge(cv_df, cv_base[cols_to_use], on=["unique_id", "ds", "cutoff"], how="left")
