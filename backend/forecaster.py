@@ -143,11 +143,23 @@ def run_pipeline(
 
     # ── 3. TOURNAMENT (CROSS-VALIDATION) ──────────────────────────────────
     try:
+        if is_massive:
+            raise ValueError("Skipping CV for Massive Dataset (Speed/RAM Guard)")
+
         actual_windows = min(n_windows, max(1, len(train)//(horizon*2)))
         all_model_names = [m.alias if hasattr(m,'alias') else m.__class__.__name__ for m in all_models]
         
-        # Consolidate for CV to avoid 'forward' attribute errors in Naive models
-        sf_cv = StatsForecast(models=all_models, freq=freq, n_jobs=1)
+        # Re-instantiate models for CV to avoid 'forward' attribute errors
+        import copy
+        fresh_models = []
+        for m in all_models:
+            name = m.__class__.__name__
+            if name == "Naive": fresh_models.append(Naive())
+            elif name == "SeasonalNaive": fresh_models.append(SeasonalNaive(season_length=season_length))
+            elif name == "HistoricAverage": fresh_models.append(HistoricAverage())
+            else: fresh_models.append(copy.deepcopy(m))
+
+        sf_cv = StatsForecast(models=fresh_models, freq=freq, n_jobs=1)
         cv_df = sf_cv.cross_validation(h=horizon, df=df_sf, n_windows=actual_windows, step_size=horizon, refit=False)
         
         if "unique_id" not in cv_df.columns:
