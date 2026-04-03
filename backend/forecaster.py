@@ -121,13 +121,14 @@ def run_pipeline(
         all_models = baseline + [historic_avg, arima, sarima]
 
     # Fit
+    train_ai = df_sf.groupby("unique_id").tail(550).reset_index(drop=True)
     try:
         sf = StatsForecast(models=all_models, freq=freq, n_jobs=1)
-        sf.fit(train)
+        sf.fit(train_ai)
     except Exception as e:
         results["errors"].append(f"Model Engine Warning: {str(e)[:100]}. Falling back to Baseline.")
         sf = StatsForecast(models=baseline, freq=freq, n_jobs=1)
-        sf.fit(train)
+        sf.fit(train_ai)
         all_models = baseline
 
     # Predictions
@@ -149,18 +150,19 @@ def run_pipeline(
         actual_windows = min(n_windows, max(1, len(train)//(horizon*2)))
         all_model_names = [m.alias if hasattr(m,'alias') else m.__class__.__name__ for m in all_models]
         
-        # Re-instantiate models for CV to avoid 'forward' attribute errors
+        # Re-instantiate models for CV. Skip Baselines to avoid 'forward' attribute errors entirely.
         import copy
-        fresh_models = []
+        cv_models = []
         for m in all_models:
             name = m.__class__.__name__
-            if name == "Naive": fresh_models.append(Naive())
-            elif name == "SeasonalNaive": fresh_models.append(SeasonalNaive(season_length=season_length))
-            elif name == "HistoricAverage": fresh_models.append(HistoricAverage())
-            else: fresh_models.append(copy.deepcopy(m))
+            if name not in ["Naive", "SeasonalNaive", "HistoricAverage"]:
+                cv_models.append(copy.deepcopy(m))
 
-        sf_cv = StatsForecast(models=fresh_models, freq=freq, n_jobs=1)
-        cv_df = sf_cv.cross_validation(h=horizon, df=df_sf, n_windows=actual_windows, step_size=horizon, refit=False)
+        if not cv_models:
+            raise ValueError("No advanced models available for CV backtest.")
+
+        sf_cv = StatsForecast(models=cv_models, freq=freq, n_jobs=1)
+        cv_df = sf_cv.cross_validation(h=horizon, df=train_ai, n_windows=actual_windows, step_size=horizon, refit=False)
         
         if "unique_id" not in cv_df.columns:
             cv_df = cv_df.reset_index()
