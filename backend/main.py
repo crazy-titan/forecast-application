@@ -278,7 +278,8 @@ def forecast(
     try:
         # ── 4. MEMORY GUARD PRE-TRUNCATION ──────────────────────────────────
         # If the dataset is massive, truncate it BEFORE running regex in build_sf_dataframe
-        if len(df) > 50000:
+        is_huge = len(df) > 50000
+        if is_huge:
             if mapping.get("id_col"):
                 df = df.groupby(mapping["id_col"]).tail(2000).reset_index(drop=True)
             else:
@@ -297,7 +298,7 @@ def forecast(
                 "P": to_int(P,2), "D": to_int(D,1), "Q": to_int(Q,2)
             }
         
-        results = run_pipeline(df_sf, freq, final_sl, final_h, n_windows_val, mode=mode, manual_params=manual_params)
+        results = run_pipeline(df_sf, freq, final_sl, final_h, n_windows_val, mode=mode, manual_params=manual_params, force_massive=is_huge)
         
         def extract_forecast_values(r):
             prob = r.get("prob_preds")

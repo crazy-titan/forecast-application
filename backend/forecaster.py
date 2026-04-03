@@ -55,6 +55,7 @@ def run_pipeline(
     n_windows: int = 5,
     mode: str = "auto",
     manual_params: Optional[Dict[str, int]] = None,
+    force_massive: bool = False,
 ) -> Dict[str, Any]:
     results = {"errors": [], "is_high_speed": False}
 
@@ -63,7 +64,7 @@ def run_pipeline(
 
     # ── 1. ULTRA-SAFE MEMORY GUARD ──────────────────────────────────────────
     total_points = len(df_sf)
-    is_massive = total_points > 50000 # Threshold for Render (512MB RAM)
+    is_massive = force_massive or total_points > 50000 # Threshold for Render (512MB RAM)
     
     if is_massive:
         results["is_high_speed"] = True
