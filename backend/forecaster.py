@@ -10,7 +10,10 @@ from typing import Dict, Any, Optional, List
 ON_RENDER = os.environ.get("RENDER") == "true"
 
 from statsforecast import StatsForecast
-from statsforecast.models import Naive, HistoricAverage, SeasonalNaive, AutoARIMA
+from statsforecast.models import (
+    Naive, HistoricAverage, SeasonalNaive, 
+    AutoETS, DynamicOptimizedTheta
+)
 from utilsforecast.losses import mae, mse
 from utilsforecast.evaluation import evaluate
 
@@ -103,29 +106,20 @@ def run_pipeline(
         all_models = baseline + [historic_avg]
         results["errors"].append("Notice: Heavy statistical models (AutoARIMA) skipped to maintain memory stability.")
     else:
-        avg_len = len(train) / train["unique_id"].nunique()
-        is_busy = avg_len > 2500 or train["unique_id"].nunique() > 20
         if mode == "auto":
-            sarima = AutoARIMA(season_length=season_length, alias="SARIMA",
-                               max_p=3 if is_busy else 5, max_q=3 if is_busy else 5,
-                               max_P=1 if is_busy else 2, max_Q=1 if is_busy else 2)
-            arima = AutoARIMA(season_length=1, alias="ARIMA",
-                              max_p=3 if is_busy else 5, max_q=3 if is_busy else 5)
+            # DynamicOptimizedTheta and AutoETS are 10x faster than ARIMA.
+            theta = DynamicOptimizedTheta(season_length=season_length)
+            ets = AutoETS(season_length=season_length)
+            all_models = baseline + [historic_avg, theta, ets]
         else:
-            mp = manual_params or {}
-            d_val = min(mp.get("d", 2), 2)
-            D_val = min(mp.get("D", 1), 1)
-            sarima = AutoARIMA(season_length=season_length, alias="SARIMA",
-                               max_p=mp.get("p",3), max_d=d_val, max_q=mp.get("q",3),
-                               max_P=mp.get("P",2), max_D=D_val, max_Q=mp.get("Q",2))
-            arima = AutoARIMA(season_length=1, alias="ARIMA",
-                              max_p=mp.get("p",3), max_d=d_val, max_q=mp.get("q",3))
-        all_models = baseline + [historic_avg, arima, sarima]
+            # Manual mode defaults to a reliable ETS/Baseline combination
+            ets_manual = AutoETS(season_length=season_length)
+            all_models = baseline + [historic_avg, ets_manual]
 
     # Fit
-    # For Render (512MB RAM), we cap heavily to 350 points to prevent OOM during matrix inversion.
-    # Local machines (much higher RAM) get 1000 points (~3 years) for maximum fidelity.
-    train_ai = df_sf.groupby("unique_id").tail(350 if ON_RENDER else 1000).reset_index(drop=True)
+    # Render (512MB RAM): 350 points to prevent OOM
+    # Localhost (Turbo): 2,000 points balance speed and 5-year history analysis
+    train_ai = df_sf.groupby("unique_id").tail(350 if ON_RENDER else 2000).reset_index(drop=True)
     try:
         sf = StatsForecast(models=all_models, freq=freq, n_jobs=-1 if not ON_RENDER else 1)
         sf.fit(train_ai)
@@ -166,12 +160,14 @@ def run_pipeline(
             raise ValueError("No advanced models available for CV backtest.")
 
         sf_cv = StatsForecast(models=cv_models, freq=freq, n_jobs=-1 if not ON_RENDER else 1)
+        # Using refit=False is the most critical speed optimization for Cross-Validation.
+        # It trains once and moves the window, instead of retraining at every step.
         cv_df = sf_cv.cross_validation(h=horizon, df=train_ai, n_windows=actual_windows, step_size=horizon, refit=False)
         
-        # Baselines run separately with refit=True to completely bypass the 'forward' attribute bug
+        # Baselines run separately. Setting refit=False here as well for speed.
         try:
             sf_base = StatsForecast(models=[Naive(), SeasonalNaive(season_length=season_length), HistoricAverage()], freq=freq, n_jobs=-1 if not ON_RENDER else 1)
-            cv_base = sf_base.cross_validation(h=horizon, df=train_ai, n_windows=actual_windows, step_size=horizon, refit=True)
+            cv_base = sf_base.cross_validation(h=horizon, df=train_ai, n_windows=actual_windows, step_size=horizon, refit=False)
             
             if "unique_id" not in cv_base.columns: cv_base = cv_base.reset_index()
             if "unique_id" not in cv_df.columns: cv_df = cv_df.reset_index()
