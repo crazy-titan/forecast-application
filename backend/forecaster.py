@@ -123,9 +123,9 @@ def run_pipeline(
         all_models = baseline + [historic_avg, arima, sarima]
 
     # Fit
-    # Always cap the heavy mathematical optimization to the most recent 1000 points (~3 years of daily).
-    # Feeding 5 years into AutoARIMA takes ~5 minutes locally. 1000 points yields the same accuracy in ~20 secs.
-    train_ai = df_sf.groupby("unique_id").tail(1000).reset_index(drop=True)
+    # For Render (512MB RAM), we cap heavily to 350 points to prevent OOM during matrix inversion.
+    # Local machines (much higher RAM) get 1000 points (~3 years) for maximum fidelity.
+    train_ai = df_sf.groupby("unique_id").tail(350 if ON_RENDER else 1000).reset_index(drop=True)
     try:
         sf = StatsForecast(models=all_models, freq=freq, n_jobs=-1 if not ON_RENDER else 1)
         sf.fit(train_ai)
