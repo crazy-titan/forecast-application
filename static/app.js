@@ -450,7 +450,16 @@ function renderResults(data) {
   const nRisk     = document.getElementById("narrativeRisk");
   const nAdvice   = document.getElementById("narrativeAdvice");
   if (data.narrative) {
-    const boldify = (txt) => txt ? txt.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>") : "—";
+    const boldify = (txt) => {
+      if (!txt) return "—";
+      // First, handle the generic bolding
+      let html = txt.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+      // Then, inject the color-sync spans
+      html = html.replace(/<strong>Cyan<\/strong>/g, '<span class="text-cyan">Cyan</span>');
+      html = html.replace(/<strong>Purple<\/strong>/g, '<span class="text-purple">Purple</span>');
+      html = html.replace(/<strong>Orange<\/strong>/g, '<span class="text-orange">Orange</span>');
+      return html;
+    };
     if (nBehavior) nBehavior.innerHTML = boldify(data.narrative.behavior);
     if (nRisk)     nRisk.innerHTML     = boldify(data.narrative.risk);
     if (nAdvice)   nAdvice.innerHTML   = boldify(data.narrative.advice);

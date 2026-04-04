@@ -228,6 +228,11 @@ a:hover { color: #fff; text-shadow: var(--shadow-glow); }
 .intel-card-label { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.15em; color: var(--text-muted); text-transform: uppercase; }
 .narrative-card p { font-size: 1.05rem; font-weight: 500; line-height: 1.5; color: #fff; }
 
+/* Visual Color Pointers (3.4.9 Upgrade) */
+.text-cyan { color: var(--accent-cyan); font-weight: 700; }
+.text-purple { color: var(--accent-purple); font-weight: 700; }
+.text-orange { color: var(--accent-orange); font-weight: 700; }
+
 @media (max-width: 1000px) {
     .intel-board-grid { grid-template-columns: 1fr; }
 }
