@@ -16,6 +16,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   initTheory();
   initTooltips();
   
+  // Dynamic Year Sync (3.4.6 Upgrade)
+  const yr = document.getElementById("currentYear");
+  if (yr) yr.textContent = new Date().getFullYear();
+
   // Restore Below-Graph Toolbars
   initChartToolbar("forecastChart", "forecastToolbar");
   initChartToolbar("historyOnlyChart", "historyToolbar");
