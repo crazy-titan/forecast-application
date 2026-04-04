@@ -476,7 +476,7 @@ def forecast(
             "warnings": results.get("errors",[]) + validation.get("warnings",[]),
             "insights": {
                 "history_points": len(df),
-                "history_years": round((pd.to_datetime(df[mapping["date_col"]]).max() - pd.to_datetime(df[mapping["date_col"]]).min()).days / 365, 1) if not df.empty else 0,
+                "history_years": round((pd.to_datetime(df[mapping["date_col"]], errors='coerce', format='mixed', dayfirst=True).max() - pd.to_datetime(df[mapping["date_col"]], errors='coerce', format='mixed', dayfirst=True).min()).days / 365, 1) if not df.empty else 0,
                 "forecast_horizon": final_h
             },
             "dashboard_summary": results.get("dashboard_summary", "")
