@@ -102,19 +102,8 @@ a:hover { color: #fff; text-shadow: var(--shadow-glow); }
     transition: 0.3s ease;
 }
 
-/* Final Polish: Turbo Badge */
-.turbo-badge {
-    background: linear-gradient(135deg, #FFD600, #FF6D00);
-    color: #000;
-    font-size: 0.7rem;
-    font-weight: 800;
-    padding: 2px 8px;
-    border-radius: 20px;
-    margin-left: 10px;
-    text-transform: uppercase;
-    box-shadow: 0 0 15px rgba(255, 214, 0, 0.4);
-    animation: pulse-glow 2s infinite;
-}
+
+/* Final Polish: Header & Navigation */
 
 @keyframes pulse-glow {
     0% { box-shadow: 0 0 5px rgba(255, 214, 0, 0.4); }
