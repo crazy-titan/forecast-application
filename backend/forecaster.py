@@ -72,8 +72,8 @@ def run_pipeline(
         raise ValueError("No valid data points found. Please check your mapping.")
 
     # ── 1. SPEED GUARD: Aggressive Resource Optimization ──────────────────
-    # Increased for Hugging Face (16GB RAM) - supports 10+ years of daily data
-    MAX_TRAIN_ROWS = 5000 
+    # Increased for ChainCast 3.1 Industrial Intelligence
+    MAX_TRAIN_ROWS = 50000 
     df_sf = df_sf.groupby("unique_id").tail(MAX_TRAIN_ROWS).reset_index(drop=True)
     print(f"[ENGINE-LOG] Training history capacity: {MAX_TRAIN_ROWS} rows.")
 
@@ -98,10 +98,12 @@ def run_pipeline(
     baseline = [SeasonalNaive(season_length=season_length), HistoricAverage()]
 
     if mode == "auto":
-        print("[ENGINE-LOG] Model mode: Industrial-AI (Theta/ETS).")
+        print("[ENGINE-LOG] Model mode: Industrial-AI (ARIMA/Theta/ETS).")
         theta = DynamicOptimizedTheta(season_length=season_length)
         ets = AutoETS(season_length=season_length)
-        all_models = baseline + [theta, ets]
+        # Optimized AutoARIMA for speed: use approximation and simple search
+        arima = AutoARIMA(season_length=season_length, approximation=True, stepwise=True)
+        all_models = baseline + [theta, ets, arima]
     else:
         print("[ENGINE-LOG] Model mode: Manual configuration.")
         all_models = baseline + [AutoETS(season_length=season_length)]

@@ -660,12 +660,28 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     padding: 1.25rem 1.75rem;
     backdrop-filter: blur(12px);
 }
-.trust-header {
+.chart-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
+
+.insight-pill {
+    background: rgba(0, 229, 255, 0.05);
+    border-left: 3px solid var(--accent-blue);
+    padding: 0.35rem 0.75rem;
+    font-size: 0.65rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    display: flex;
+    gap: 0.5rem;
+}
+.insight-pill span { color: var(--accent-blue); }
 .trust-label {
     font-size: 0.8rem;
     text-transform: uppercase;

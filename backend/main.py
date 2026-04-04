@@ -322,14 +322,13 @@ def forecast(
     
     # Lift the 'Huge' limit to 1GB for Localhost to ensure full history is used.
     # Only Render (512MB limit) gets the 2MB ultra-strict constraint.
-    limit_mb = 3 if ON_RENDER else 1024
+    limit_mb = 3 if ON_RENDER else 2048 # Increased for robust local environments
     is_huge = file_size > limit_mb * 1024 * 1024 
 
     if is_huge:
         chunks = []
-        # Use 50k as the safe threshold for full-history visualization (approx 5 years of daily/hourly data)
-        safe_viz_limit = 50000
-        for chunk in pd.read_csv(path, usecols=use_cols, chunksize=50000):
+        safe_viz_limit = 100000 # Increased for ChainCast 3.1
+        for chunk in pd.read_csv(path, usecols=use_cols, chunksize=100000):
             if mapping.get("id_col"):
                 c_tail = chunk.groupby(mapping["id_col"]).tail(safe_viz_limit)
             else:
@@ -408,6 +407,11 @@ def forecast(
             "supply_chain": sc,
             "theory": get_theory(results, validation),
             "warnings": results.get("errors",[]) + validation.get("warnings",[]),
+            "insights": {
+                "history_points": len(df),
+                "history_years": round((df[mapping["date_col"]].max() - df[mapping["date_col"]].min()).days / 365, 1) if not df.empty else 0,
+                "forecast_horizon": final_h
+            },
             "dashboard_summary": results.get("dashboard_summary", "")
         }
         
