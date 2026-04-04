@@ -1267,7 +1267,8 @@ function showDataInsights(p) {
         scrollTo("settings-section");
         return;
     }
-    document.getElementById("diagPersonality").textContent = p.type || "--";
+    document.getElementById("diagPersonality").textContent = p.type || "Custom Dataset";
+    document.getElementById("diagPersonalityDesc").textContent = p.type_desc || "No special pattern detected.";
     const healthEl = document.getElementById("diagHealth");
     healthEl.textContent = p.health || "--";
     healthEl.className = `diag-value ${p.health === 'Excellent' ? 'diag-status-excellent' : 'diag-status-caution'}`;

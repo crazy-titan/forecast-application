@@ -68,8 +68,19 @@ def validate_dataframe(
             inferred_freq = pd.infer_freq(df["_date"])
             if inferred_freq:
                 info["freq"] = inferred_freq
-                freq_labels = {"D": "Daily", "W": "Weekly", "M": "Monthly", "Q": "Quarterly",
-                               "H": "Hourly", "Y": "Yearly", "MS": "Monthly start", "W-MON": "Weekly"}
+                freq_labels = {
+                    "D": "Daily", 
+                    "B": "Business Daily",
+                    "W": "Weekly", 
+                    "M": "Monthly", 
+                    "MS": "Monthly Start",
+                    "Q": "Quarterly", 
+                    "QS": "Quarterly Start",
+                    "H": "Hourly", 
+                    "Y": "Yearly", 
+                    "W-MON": "Weekly (Mon)",
+                    "W-SUN": "Weekly (Sun)"
+                }
                 info["freq_label"] = freq_labels.get(inferred_freq, inferred_freq)
             else:
                 # Fallback: guess from median difference
@@ -173,10 +184,11 @@ def validate_dataframe(
     # --- Strategic Insight Generation (3.1.3 Upgrade) ---
     personality = {
         "type": info.get("freq_label", "Custom Dataset"),
+        "type_desc": "Consistent professional cadence detected." if info.get("freq") in ["B", "D", "W"] else "Irregular or specialized intervals discovered.",
         "health": "Excellent" if not warnings else "Caution",
-        "health_msg": "No significant anomalies or gaps detected." if not warnings else f"Found {len(warnings)} data quality items that were surgically repaired.",
+        "health_msg": "No significant anomalies or gaps detected." if not warnings else f"Managed {len(warnings)} data quality items automatically.",
         "strategy": "Stable Baseline Forecast" if stationarity.get(series_list[0], {}).get("stationary") else "Trend-Adaptive AI Prediction",
-        "strategy_msg": f"Detected a strong {info.get('season_length', 7)}-step seasonal pattern. Model ensemble (SARIMA/ETS) optimized for this cycle."
+        "strategy_msg": f"Detected a strong {info.get('season_length', 7)}-step seasonal pattern. Model ensemble (SARIMA/ETS) optimized for this specific data personality."
     }
 
     return {

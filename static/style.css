@@ -1242,3 +1242,22 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     .exec-card { flex-direction: column; text-align: center; padding: 1rem; }
     .exec-icon { font-size: 2rem; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   DIAGNOSTIC MODAL REFINEMENTS (3.1.5)
+   ═══════════════════════════════════════════════════════════ */
+.diag-sub-text {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 0.3rem;
+    line-height: 1.4;
+    font-weight: 400;
+}
+.diag-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+.diag-value {
+    transition: all 0.3s ease;
+}
