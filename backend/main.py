@@ -22,13 +22,21 @@ from backend.validator import validate_file_size, validate_dataframe
 from backend.forecaster import build_sf_dataframe, run_pipeline, compute_supply_chain_metrics
 from backend.pdf_exporter import make_pdf_report
 
-# --- Placeholders for optional features (can be implemented later) ---
-SAMPLE_DATASETS = {}  # Add sample datasets later if desired
+# --- Model Label Mapping (3.1.5 Upgrade) ---
+MODEL_LABELS = {
+    "SARIMA (Auto)": "Seasonal AI Engine",
+    "SARIMA": "Seasonal AI Engine",
+    "AutoETS": "Adaptive Smoothing AI",
+    "DynamicOptimizedTheta": "Optimized Curve-Fitting",
+    "SeasonalNaive": "Seasonal Persistence",
+    "HistoricAverage": "Historic Baseline (Avg)"
+}
 
 def get_theory(results, validation):
     """Generates 7 dynamic steps explaining the methodology in plain English."""
     info = validation.get("info", {})
-    best = results.get("best_model", "SARIMA (Auto)")
+    raw_best = results.get("best_model", "SARIMA (Auto)")
+    best = MODEL_LABELS.get(raw_best, raw_best)
     
     steps = [
         {
@@ -400,9 +408,13 @@ def forecast(
             stockout_cost=to_float(stockout_cost,0)
         )
         
+        model_scores = results.get("model_scores", {})
+        labeled_scores = {MODEL_LABELS.get(k, k): v for k, v in model_scores.items()}
+        raw_best = results.get("best_model", "SARIMA (Auto)")
+        
         response = {
-            "best_model": results.get("best_model","SARIMA"),
-            "model_scores": results.get("model_scores",{}),
+            "best_model": MODEL_LABELS.get(raw_best, raw_best),
+            "model_scores": labeled_scores,
             "history": results.get("history",{}),
             "forecast": results.get("prob_preds").fillna(0).to_dict(orient="records") if results.get("prob_preds") is not None else [],
             "cv_results": results.get("eval_agg",pd.DataFrame()).to_dict(orient="records") if results.get("eval_agg") is not None else [],
