@@ -1259,3 +1259,26 @@ function initChartToolbar(chartId, toolbarId) {
         }
     });
 }
+
+function showDataInsights(p) {
+    if (!p) return;
+    document.getElementById("diagPersonality").textContent = p.type || "--";
+    const healthEl = document.getElementById("diagHealth");
+    healthEl.textContent = p.health || "--";
+    healthEl.className = `diag-value ${p.health === 'Excellent' ? 'diag-status-excellent' : 'diag-status-caution'}`;
+    
+    document.getElementById("diagFindings").textContent = p.health_msg || "--";
+    document.getElementById("diagStrategy").textContent = p.strategy || "--";
+    document.getElementById("diagStrategyMsg").textContent = p.strategy_msg || "--";
+    
+    const overlay = document.getElementById("dataInsightsOverlay");
+    overlay.classList.remove("hidden");
+    
+    // Bind buttons
+    document.getElementById("closeInsightsBtn").onclick = () => overlay.classList.add("hidden");
+    document.getElementById("confirmInsightsBtn").onclick = () => {
+        overlay.classList.add("hidden");
+        show("settings-section");
+        scrollTo("settings-section");
+    };
+}
