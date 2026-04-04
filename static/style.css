@@ -1328,3 +1328,67 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     .upload-grid { grid-template-columns: 1fr; }
     .requirements-card { order: 2; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   PRODUCTION FOOTER (3.4)
+   ═══════════════════════════════════════════════════════════ */
+.main-footer {
+    padding: 4rem 0 3rem;
+    margin-top: 6rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    background: linear-gradient(to bottom, transparent, rgba(10, 15, 45, 0.4));
+}
+
+.footer-grid {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2rem;
+}
+
+.footer-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.footer-info strong {
+    font-size: 1.1rem;
+    letter-spacing: 0.05em;
+    background: linear-gradient(90deg, #fff, #a0aec0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.footer-info span {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.footer-links {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.status-dot {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #4ade80 !important;
+    font-weight: 500;
+}
+
+@media screen and (max-width: 600px) {
+    .footer-grid {
+        flex-direction: column;
+        text-align: center;
+    }
+    .footer-links {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}
