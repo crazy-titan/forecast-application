@@ -789,6 +789,44 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .modal-close svg { width: 18px; height: 18px; stroke: var(--text-secondary); }
 .modal-close:hover svg { stroke: var(--danger); }
 
+/* ═══════════════════════════════════════════════════════════
+   CHART FOOTER CONTROLS (RESTORED BELOW GRAPH)
+   ═══════════════════════════════════════════════════════════ */
+.chart-footer-toolbar {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 0;
+    border-top: 1px solid var(--panel-border);
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.btn-range {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--panel-border);
+    color: var(--text-muted);
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-main);
+}
+
+.btn-range:hover {
+    border-color: var(--accent-blue);
+    color: #fff;
+    background: rgba(0, 229, 255, 0.1);
+}
+
+.btn-range.active {
+    background: var(--accent-blue);
+    color: #000;
+    border-color: var(--accent-blue);
+}
+
 .modal-subtitle {
     padding: 0.75rem 2rem 0;
     font-size: 0.9rem;

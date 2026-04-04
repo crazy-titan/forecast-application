@@ -15,6 +15,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   initExports();
   initTheory();
   initTooltips();
+  
+  // Restore Below-Graph Toolbars
+  initChartToolbar("forecastChart", "forecastToolbar");
+  initChartToolbar("historyOnlyChart", "historyToolbar");
+
   await startSession();
   loadSamples();
 });
@@ -1213,4 +1218,43 @@ function initTooltips() {
   document.addEventListener("mousedown", hideTip);
   document.addEventListener("scroll", hideTip, true);
   document.addEventListener("keydown", hideTip);
+}
+
+function initChartToolbar(chartId, toolbarId) {
+    const toolbar = document.getElementById(toolbarId);
+    if (!toolbar) return;
+    
+    toolbar.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn-range');
+        if (!btn) return;
+        
+        // UI State
+        toolbar.querySelectorAll('.btn-range').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        // Logic
+        const count = btn.getAttribute('data-count');
+        const step = btn.getAttribute('data-step');
+        const chart = document.getElementById(chartId);
+        
+        if (!chart || !chart.layout) return;
+
+        if (step === 'all') {
+            Plotly.relayout(chartId, { 
+                'xaxis.autorange': true,
+                'xaxis.range': null 
+            });
+        } else {
+            const now = new Date();
+            let start = new Date();
+            if (step === 'year') start.setFullYear(now.getFullYear() - parseInt(count));
+            if (step === 'month') start.setMonth(now.getMonth() - parseInt(count));
+            if (step === 'day') start.setDate(now.getDate() - parseInt(count));
+            
+            Plotly.relayout(chartId, {
+                'xaxis.range': [start.toISOString(), now.toISOString()],
+                'xaxis.autorange': false
+            });
+        }
+    });
 }
