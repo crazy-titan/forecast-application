@@ -172,11 +172,12 @@ def run_pipeline(
         results["ljung_box"] = {"pass": None, "message": "Residual check skipped."}
 
     # ── 6. CHART DECIMATION ───────────────────────────────────────────────
+    # Expanded for Hugging Face (16GB RAM support) - allows ~7 years of daily data
     history_dict = {}
     for uid, grp in df_sf.groupby("unique_id"):
-        if len(grp) > 800:
-            recent = grp.tail(600)
-            older = grp.iloc[:-600].iloc[::5]
+        if len(grp) > 2500:
+            recent = grp.tail(1800) # Keep 5 years of detailed daily context
+            older = grp.iloc[:-1800].iloc[::3] # Decimate older data points 
             display_grp = pd.concat([older, recent]).sort_values("ds")
         else:
             display_grp = grp

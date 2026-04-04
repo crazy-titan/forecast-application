@@ -731,11 +731,16 @@ function renderHistoryOnlyChart(data) {
       tickformat: "%b %d, %Y",
       rangeselector: {
           buttons: [
+              {count: 5, label: '5y', step: 'year', stepmode: 'backward'},
+              {count: 2, label: '2y', step: 'year', stepmode: 'backward'},
               {count: 1, label: '1y', step: 'year', stepmode: 'backward'},
+              {count: 6, label: '6m', step: 'month', stepmode: 'backward'},
               {count: 1, label: '1m', step: 'month', stepmode: 'backward'},
               {count: 7, label: '1w', step: 'day', stepmode: 'backward'},
               {step: 'all', label: 'All'}
           ],
+          x: 0, y: 1.05,
+          xanchor: 'left', yanchor: 'bottom',
           bgcolor: 'rgba(255,255,255,0.05)',
           activecolor: 'rgba(0,229,255,0.2)',
           font: { color: '#ffffff', size: 10 }
@@ -866,12 +871,16 @@ function renderForecastChart(data) {
       tickformat: "%b %d, %Y",
       rangeselector: {
           buttons: [
+              {count: 5, label: '5y', step: 'year', stepmode: 'backward'},
+              {count: 2, label: '2y', step: 'year', stepmode: 'backward'},
               {count: 1, label: '1y', step: 'year', stepmode: 'backward'},
               {count: 6, label: '6m', step: 'month', stepmode: 'backward'},
               {count: 1, label: '1m', step: 'month', stepmode: 'backward'},
               {count: 7, label: '1w', step: 'day', stepmode: 'backward'},
               {step: 'all', label: 'All'}
           ],
+          x: 0, y: 1.05,
+          xanchor: 'left', yanchor: 'bottom',
           bgcolor: 'rgba(255,255,255,0.05)',
           activecolor: 'rgba(0,229,255,0.2)',
           font: { color: '#ffffff', size: 10 }
