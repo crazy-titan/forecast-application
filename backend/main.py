@@ -105,9 +105,9 @@ def get_narrative(results, validation, sc_metrics):
         advice = "STRATEGY: Maintain existing baseline. Focus on lead-time efficiency rather than volume changes."
 
     return {
-        "behavior": behavior,
-        "risk": risk,
-        "advice": advice
+        "behavior": f"{behavior} (See the **Cyan** peaks in the history chart).",
+        "risk": f"{risk} (Note the width of the **Purple** shaded forecast bands).",
+        "advice": f"{advice} (Compare with the **Orange** trend line in the history profile)."
     }
 
 # --- JSON scrubber for NaN/Inf/Timestamp ---

@@ -450,9 +450,10 @@ function renderResults(data) {
   const nRisk     = document.getElementById("narrativeRisk");
   const nAdvice   = document.getElementById("narrativeAdvice");
   if (data.narrative) {
-    if (nBehavior) nBehavior.textContent = data.narrative.behavior || "—";
-    if (nRisk)     nRisk.textContent     = data.narrative.risk || "—";
-    if (nAdvice)   nAdvice.textContent   = data.narrative.advice || "—";
+    const boldify = (txt) => txt ? txt.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>") : "—";
+    if (nBehavior) nBehavior.innerHTML = boldify(data.narrative.behavior);
+    if (nRisk)     nRisk.innerHTML     = boldify(data.narrative.risk);
+    if (nAdvice)   nAdvice.innerHTML   = boldify(data.narrative.advice);
   }
 
   let scoreHtml;
