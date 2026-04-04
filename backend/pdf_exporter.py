@@ -4,6 +4,14 @@ import traceback
 from fpdf import FPDF
 
 
+# --- Professional Metadata & Glossaries (3.1.5 Upgrade) ---
+MODEL_DESCRIPTIONS = {
+    "Seasonal AI Engine": "Our most advanced pattern-matching engine. It studies your 'Seasonal Heartbeat' (the natural rhythm of your business) and projects that exact cycle into the future. Ideal for data that peaks weekly or monthly.",
+    "Adaptive Smoothing AI": "A reactive system that weights recent history more heavily than the distant past. It 'smooths' out random noise to focus on the current momentum of your demand.",
+    "Optimized Curve-Fitting": "A high-precision model that mathematical balances 'Trend' (the direction) and 'Seasonality' (the cycle). It is remarkably stable for long-term strategic planning.",
+    "Historic Baseline (Avg)": "A simplified safety check that uses your long-term average. While less 'intelligent,' it provides a solid floor for your inventory planning."
+}
+
 def clean_text(text):
     """Deeply defensive text cleaner to prevent PDF rendering crashes."""
     if text is None:
@@ -67,11 +75,49 @@ class ForecastPDF(FPDF):
         r, g, b = colors.get(kind, (80, 80, 80))
         self.set_font("helvetica", "", 9)
         self.set_text_color(r, g, b)
-        # Resets X to slightly indented
         self.set_x(15) 
-        # Width 180 leaves 15mm right margin (210 - 15 - 180 = 15) -- VERY SAFE
         self.multi_cell(180, 6, f"* {clean_text(text)}")
         self.set_text_color(0, 0, 0)
+
+    def insight_box(self, title, body, example=None):
+        """Draws a professional highlighted box for educational context."""
+        self.set_fill_color(240, 248, 255) # Light Alice Blue 
+        self.set_draw_color(0, 80, 180)    # Deep Professional Blue
+        self.set_line_width(0.3)
+        
+        self.set_x(10)
+        curr_y = self.get_y()
+        self.set_font("helvetica", "B", 10)
+        self.set_text_color(0, 80, 180)
+        
+        # Calculate height needed for body + title + example
+        text_content = f"{title.upper()}: {body}"
+        if example: text_content += f"\n\nEXAMPLE: {example}"
+        
+        # Determine height (approximate)
+        lines = self.multi_cell(185, 5, clean_text(text_content), border=0, align='L', dry_run=True, output="LINES")
+        h = (len(lines) * 5) + 6
+        
+        # Draw background and title
+        self.rect(10, curr_y, 190, h, style='FD')
+        self.set_xy(15, curr_y + 3)
+        self.set_font("helvetica", "B", 10)
+        self.cell(190, 5, f"{clean_text(title)} (Analysis Insight)", new_x="LMARGIN", new_y="NEXT")
+        
+        self.set_font("helvetica", "", 9)
+        self.set_text_color(40, 40, 40)
+        self.set_x(15)
+        self.multi_cell(180, 5, clean_text(body))
+        
+        if example:
+            self.ln(1)
+            self.set_x(15)
+            self.set_font("helvetica", "I", 9)
+            self.set_text_color(0, 80, 180)
+            self.multi_cell(180, 5, f"Example: {clean_text(example)}")
+            
+        self.set_text_color(0, 0, 0)
+        self.ln(4)
 
 
 def make_pdf_report(session_data: dict) -> bytes:
@@ -96,6 +142,10 @@ def make_pdf_report(session_data: dict) -> bytes:
         pdf.key_value("Target value column", mapping.get('value_col', 'N/A'))
         pdf.key_value("Report generated", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         pdf.key_value("Best model selected", best_model, val_color=(0, 120, 0))
+        pdf.ln(2)
+        
+        model_desc = MODEL_DESCRIPTIONS.get(best_model, "A customized statistical engine selected for its accuracy on your history.")
+        pdf.insight_box("Why this model?", model_desc)
         pdf.ln(5)
 
         # -- 2. Data Processing Report ----------------------------------------------
@@ -195,7 +245,14 @@ def make_pdf_report(session_data: dict) -> bytes:
                         nval = "N/A"
                     pdf.cell(col_w, 8, nval, border=1, align="R")
                 pdf.ln()
-        pdf.ln(8)
+        
+        pdf.ln(2)
+        pdf.insight_box(
+            "Understanding Error (MAE)", 
+            "The MAE (Mean Absolute Error) is the single most important number for checking reliability. It tells you the average 'distance' between the AI and reality.",
+            example=f"Your MAE is {results.get('model_scores', {}).get(best_model, 'N/A')}. This means on average, the forecast was off by this many units during our testing phase."
+        )
+        pdf.ln(5)
 
         # -- 5. Supply Chain Metrics ------------------------------------------------
         pdf.section_title("5. Supply Chain Decision Parameters")
@@ -210,6 +267,13 @@ def make_pdf_report(session_data: dict) -> bytes:
         ]
         for k, v in sc_rows:
             pdf.key_value(k, v)
+        pdf.ln(2)
+        
+        pdf.insight_box(
+            "Inventory Strategy", 
+            "Safety Stock protects you from the 'Unknown.' Use the Reorder Point (ROP) as your trigger: when inventory hits this level, place an order to ensure stock arrives before you run out.",
+            example=f"With a {sc.get('service_level_pct', 95)}% service level, you are protected against stockouts in {sc.get('service_level_pct', 95)} out of 100 scenarios."
+        )
         pdf.ln(5)
 
         # -- 6. Future Forecast Breakdown (First 50 periods) ----------------------------
@@ -258,26 +322,49 @@ def make_pdf_report(session_data: dict) -> bytes:
 
         # -- 7. Dictionary of Logistics Intelligence (NEW 3.1.4) -----------------------
         pdf.add_page()
-        pdf.section_title("7. Dictionary of Logistics Intelligence (Glossary)")
-        glossary = [
-            ("MAE (Mean Absolute Error)", "The average 'distance' between our forecast and reality. A lower MAE means the model predicted your history with higher precision."),
-            ("SARIMA (Auto)", "The 'Smart Pattern-Matcher.' This AI model identifies cycles (like weekly or monthly patterns) and projects them into the future."),
-            ("Confidence Intervals (80% Range)", "The 'shading' on our graph. Demand is 80% likely to fall between the High and Low values. Use the High value for aggressive stocking."),
-            ("Stationarity", "Whether your demand stays level or targets a clear 'up' or 'down' trend. Non-stationary data requires more complex adjustments which our AI handles automatically."),
-            ("Safety Stock", "The 'Buffer.' This is extra inventory you should keep on hand to handle unexpected demand surges (with a 95% protection level)."),
-            ("Reorder Point (ROP)", "The 'Order Signal.' When your physical inventory drops to this level, you must order more to prevent running out during the Lead Time."),
-            ("Lead Time", "The number of days it takes for new stock to arrive from your supplier after you place an order."),
-            ("Stockout Risk", "The probability that demand will exceed your available stock before the next shipment arrives. We target a low 5% risk."),
+        pdf.section_title("7. Master Logistics Dictionary (Plain English Guide)")
+        
+        categories = [
+            ("Category 1: The Basics (What you see)", [
+                ("Historical Data", "The foundation. Your past sales/demand records. The AI uses this to learn your business 'DNA'.", "If you have 2 years of history, the AI can detect 2 full cycles of seasonal peaks."),
+                ("Forecast Horizon", "How far into the future you are looking. Usually measured in days or months.", "A 30-day horizon helps with monthly procurement; a 90-day horizon helps with warehouse space planning."),
+                ("Frequency", "The heartbeat of your data (Daily, Weekly, Monthly).", "A 'Business Day' frequency knows to ignore weekends when shops might be closed.")
+            ]),
+            ("Category 2: Performance (Is it accurate?)", [
+                ("MAE (Mean Absolute Error)", "The average mistake size. Lower is better.", "An MAE of 10 means the AI is typically within 10 units of the actual value."),
+                ("Confidence Interval (80%)", "The 'Shaded Area' on your chart. It represents the range where demand is highly likely to fall.", "If the high-80% is 150, and your forecast is 100, keep 50 units as buffer for extreme peaks.")
+            ]),
+            ("Category 3: Supply Chain Strategy (What to do)", [
+                ("Safety Stock", "Your emergency buffer. It covers you if demand is suddenly higher than expected during lead time.", "Think of this as the 'Reserve' fuel in a car tank."),
+                ("Reorder Point (ROP)", "Your action signal. When current stock hits this number, order more.", "Formula: (Daily Demand x Lead Time) + Safety Stock."),
+                ("Service Level", "Your probability of being in stock. Higher means more safety stock but higher costs.", "95% is industry standard. 99% is 'Ultra-Critical' (medical/food)."),
+                ("Lead Time", "The delay between ordering and receiving stock.", "If your lead time is 14 days, you must forecast at least 14 days ahead to be prepared.")
+            ])
         ]
-        for term, definition in glossary:
-            pdf.set_font("helvetica", "B", 10)
-            pdf.set_text_color(0, 80, 180)
+
+        for cat_title, items in categories:
+            pdf.set_font("helvetica", "B", 11)
+            pdf.set_text_color(0, 0, 0)
             pdf.set_x(10)
-            pdf.cell(190, 7, f" {clean_text(term)}", new_x="LMARGIN", new_y="NEXT")
-            pdf.set_font("helvetica", "", 9)
-            pdf.set_text_color(40, 40, 40)
-            pdf.set_x(15)
-            pdf.multi_cell(180, 5, clean_text(definition))
+            pdf.cell(190, 8, clean_text(cat_title), border="B", new_x="LMARGIN", new_y="NEXT")
+            pdf.ln(2)
+            
+            for term, definition, ex in items:
+                pdf.set_font("helvetica", "B", 10)
+                pdf.set_text_color(0, 80, 180)
+                pdf.set_x(12)
+                pdf.cell(190, 7, f" {clean_text(term)}", new_x="LMARGIN", new_y="NEXT")
+                
+                pdf.set_font("helvetica", "", 9)
+                pdf.set_text_color(40, 40, 40)
+                pdf.set_x(17)
+                pdf.multi_cell(178, 5, clean_text(definition))
+                
+                pdf.set_font("helvetica", "I", 9)
+                pdf.set_text_color(100, 100, 100)
+                pdf.set_x(17)
+                pdf.multi_cell(178, 5, f"Example: {clean_text(ex)}")
+                pdf.ln(3)
             pdf.ln(3)
 
         pdf.ln(5)
