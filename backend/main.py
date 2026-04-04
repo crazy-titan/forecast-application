@@ -136,7 +136,7 @@ def to_float(val, default):
 
 # --- API Routes ---
 @app.post("/session/start")
-def create_session_route(session_id: str = None) -> str:
+def create_session_route(session_id: str = None):
     """Create a new session with a unique temporary folder. Optionally re-sync an old ID."""
     if not session_id:
         session_id = str(uuid.uuid4())
