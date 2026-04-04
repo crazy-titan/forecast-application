@@ -70,6 +70,45 @@ def get_theory(results, validation):
         }
     ]
     return {"steps": steps}
+    
+def get_narrative(results, validation, sc_metrics):
+    """Translates raw stats into a 3-bullet presentation narrative."""
+    summary = results.get("dashboard_summary", "Stable")
+    info = validation.get("info", {})
+    
+    # 1. Behavior Narrative
+    trend_map = {
+        "Upward": "Steady growth with positive momentum.",
+        "Downward": "Declining demand; suggests a strategic scale-back.",
+        "Stable": "Solid, consistent baseline with minimal drift."
+    }
+    behavior = f"{trend_map.get(summary, 'Stable')} Detects a {info.get('season_length',7)}-step seasonal heartbeat."
+
+    # 2. Risk Narrative (based on safety stock vs forecast)
+    f_total = sum(sc_metrics.get("forecast_period_total", [1])) or 1
+    ss_val = sc_metrics.get("safety_stock", 0)
+    risk_ratio = ss_val / f_total
+    
+    if risk_ratio > 0.4:
+        risk = "HIGH VOLATILITY: This dataset is 'noisy' and unpredictable. Requires larger safety buffers."
+    elif risk_ratio > 0.15:
+        risk = "MODERATE: Expect standard ripples. Strategy should focus on standard lead-time protection."
+    else:
+        risk = "STABLE: Highly predictable demand. You can maintain lean inventory with confidence."
+
+    # 3. Advice Narrative
+    if "Upward" in summary:
+        advice = "STRATEGY: Procure 10-15% above baseline to capture growth and prevent stock-outs."
+    elif "Downward" in summary:
+        advice = "STRATEGY: Reduce procurement and focus on clearing existing stock to avoid holding costs."
+    else:
+        advice = "STRATEGY: Maintain existing baseline. Focus on lead-time efficiency rather than volume changes."
+
+    return {
+        "behavior": behavior,
+        "risk": risk,
+        "advice": advice
+    }
 
 # --- JSON scrubber for NaN/Inf/Timestamp ---
 def deep_clean_json(obj):
@@ -433,6 +472,7 @@ def forecast(
             "ljung_box": results.get("ljung_box"),
             "supply_chain": sc,
             "theory": get_theory(results, validation),
+            "narrative": get_narrative(results, validation, sc),
             "warnings": results.get("errors",[]) + validation.get("warnings",[]),
             "insights": {
                 "history_points": len(df),

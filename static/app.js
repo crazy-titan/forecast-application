@@ -445,6 +445,16 @@ function renderResults(data) {
     w.toLowerCase().includes("not enough data for cv")
   );
 
+  // Render Narrative Board (3.4.7 Upgrade)
+  const nBehavior = document.getElementById("narrativeBehavior");
+  const nRisk     = document.getElementById("narrativeRisk");
+  const nAdvice   = document.getElementById("narrativeAdvice");
+  if (data.narrative) {
+    if (nBehavior) nBehavior.textContent = data.narrative.behavior || "—";
+    if (nRisk)     nRisk.textContent     = data.narrative.risk || "—";
+    if (nAdvice)   nAdvice.textContent   = data.narrative.advice || "—";
+  }
+
   let scoreHtml;
   if (hasMae) {
     scoreHtml = `MAE: <strong>${Number(scores[best]).toFixed(2)}</strong> — lowest error across all tested models`;

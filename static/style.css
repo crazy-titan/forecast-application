@@ -214,6 +214,24 @@ a:hover { color: #fff; text-shadow: var(--shadow-glow); }
     align-items: center;
 }
 
+/* AI Intelligence Board (3.4.7 Upgrade) */
+.intel-board-wrap { margin-bottom: 2.5rem; }
+.intel-board-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+.narrative-card { padding: 1.8rem; border-radius: 16px; border-left: 4px solid var(--accent-cyan); transition: transform 0.3s ease; display: flex; flex-direction: column; gap: 1rem; }
+.narrative-card:hover { transform: translateY(-5px); border-color: #fff; }
+.narrative-card[data-type="behavior"] { border-left-color: var(--accent-cyan); }
+.narrative-card[data-type="risk"] { border-left-color: var(--accent-purple); }
+.narrative-card[data-type="advice"] { border-left-color: var(--accent-blue); }
+
+.intel-card-header { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.2rem; }
+.intel-card-icon { font-size: 1.5rem; }
+.intel-card-label { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.15em; color: var(--text-muted); text-transform: uppercase; }
+.narrative-card p { font-size: 1.05rem; font-weight: 500; line-height: 1.5; color: #fff; }
+
+@media (max-width: 1000px) {
+    .intel-board-grid { grid-template-columns: 1fr; }
+}
+
 .logo {
     font-size: 1.6rem;
     font-weight: 700;
