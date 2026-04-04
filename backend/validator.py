@@ -35,12 +35,8 @@ def validate_dataframe(
             if not sample.empty and sample.iloc[0] < 1e9:
                 raise ValueError(f"Column '{date_col}' looks like an ID or Category, not a Date. Please choose a temporal column.")
 
-        # Multi-pass date parsing
-        df["_date"] = pd.to_datetime(df[date_col], errors='coerce')
-        if df["_date"].isna().all():
-            df["_date"] = pd.to_datetime(df[date_col], errors='coerce', dayfirst=True)
-        if df["_date"].isna().all():
-            df["_date"] = pd.to_datetime(df[date_col], errors='coerce', format='mixed')
+        # Single-pass robust date parsing (3.4.11 Upgrade)
+        df["_date"] = pd.to_datetime(df[date_col], errors='coerce', format='mixed', dayfirst=True)
         
         if df["_date"].dt.tz is not None:
             df["_date"] = df["_date"].dt.tz_localize(None)

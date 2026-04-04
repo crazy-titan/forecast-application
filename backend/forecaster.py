@@ -25,7 +25,8 @@ def build_sf_dataframe(
     selected: Optional[List[str]] = None,
 ) -> pd.DataFrame:
     out = pd.DataFrame()
-    out["ds"] = pd.to_datetime(df[date_col], errors="coerce")
+    # Handle dates with robust mixed-format parser (3.4.11 Upgrade)
+    out["ds"] = pd.to_datetime(df[date_col], errors="coerce", format="mixed", dayfirst=True)
     
     if df[value_col].dtype == "object":
         val_clean = df[value_col].astype(str).str.replace(r'[^\d\.-]', '', regex=True)
