@@ -1,3 +1,13 @@
+---
+title: ChainCast — Supply Chain Forecasting
+emoji: 🚀
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # ChainCast: Professional Supply Chain Forecasting
 
 ChainCast is a high-precision, decision-intelligence platform designed for supply chain practitioners. It transforms raw time-series data into actionable business insights by combining state-of-the-art statistical models with core supply chain inventory metrics.
