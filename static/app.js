@@ -1287,3 +1287,15 @@ function showDataInsights(p) {
         scrollTo("settings-section");
     };
 }
+// ═══════════════════════════════════════════════════════════
+// RESPONSIVE CHART SCALING (3.2)
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('resize', () => {
+    const charts = ['forecastChart', 'residChart', 'distChart'];
+    charts.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.classList.contains('js-plotly-plot')) {
+            Plotly.Plots.resize(el).catch(e => console.warn("Chart resize skip:", e));
+        }
+    });
+});
