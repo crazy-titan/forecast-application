@@ -175,12 +175,6 @@ function showMappingSection(data) {
   valueSelect.innerHTML = "";
   idSelect.innerHTML = '<option value="">None (single series)</option>';
 
-  // Add Sequential Option (3.3 Upgrade)
-  const seqOpt = document.createElement("option");
-  seqOpt.value = "__sequential__";
-  seqOpt.textContent = "None (Sequential Steps)";
-  dateSelect.appendChild(seqOpt);
-
   cols.forEach(c => {
     const opt1 = document.createElement("option");
     opt1.value = c;
@@ -767,8 +761,6 @@ function renderForecastChart(data) {
   const gridCol = "rgba(255,255,255,0.06)";
   const textCol = "#a0aec0";
 
-  const isSequential = data?.validation?.info?.sequential;
-
   // Distinct fixed colors per trace type
   const HISTORY_COLOR  = "#00E5FF";  // Cyan  — actual historical data
   const FORECAST_COLOR = "#FFD600";  // Gold  — AI predicted future line
@@ -850,9 +842,9 @@ function renderForecastChart(data) {
     font: { family: "Outfit, sans-serif", color: textCol },
     xaxis: { 
       gridcolor: gridCol, 
-      title: isSequential ? "Step / Sequence Index" : "Time Continuum (Past → Future)",
-      type: isSequential ? "linear" : "date",
-      tickformat: isSequential ? null : "%b %d, %Y",
+      title: "Time Continuum (Past → Future)",
+      type: "date",
+      tickformat: "%b %d, %Y",
       rangeselector: { visible: false }
     },
     yaxis: { gridcolor: gridCol, title: "Demand / Units" },
@@ -908,7 +900,6 @@ function renderComparisonChart(results) {
   const scores = results.model_scores || {};
   const best = results.best_model || "None";
   const sorted = Object.entries(scores).sort((a, b) => a[1] - b[1]);
-  const isSequential = results?.validation?.info?.sequential;
   
   if (sorted.length === 0) {
     document.getElementById("comparisonChart").innerHTML = `<div class="chart-empty-msg">Fallback model used — no comparative metrics available for this dataset size.</div>`;

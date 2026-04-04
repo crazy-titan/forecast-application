@@ -18,11 +18,8 @@ def validate_dataframe(
     info = {}
     stationarity = {}
 
-    # --- Sequential Mode Detection ---
-    is_sequential = (date_col == "__sequential__")
-    
     # Column existence
-    if not is_sequential and date_col not in df.columns:
+    if date_col not in df.columns:
         raise ValueError(f"Date column '{date_col}' not found. Available: {list(df.columns)}")
     if value_col not in df.columns:
         raise ValueError(f"Value column '{value_col}' not found. Available: {list(df.columns)}")
@@ -30,41 +27,34 @@ def validate_dataframe(
         warnings.append(f"ID column '{id_col}' not found – treating as single series.")
         id_col = None
 
-    # --- Universal date parsing (or Sequential Generation) ---
+    # --- Universal date parsing ---
     try:
-        if is_sequential:
-            # Generate dummy 1-day step timeline starting from 2000-01-01
-            df["_date"] = pd.to_datetime("2000-01-01") + pd.to_timedelta(range(len(df)), unit='D')
-            info["sequential"] = True
-            info["freq"] = "D"
-            info["freq_label"] = "Continuous Sequence"
-        else:
-            # ── Check for raw integer IDs being mapped to dates ──
-            if df[date_col].dtype in [np.int64, np.float64]:
-                sample = df[date_col].head(1)
-                if not sample.empty and sample.iloc[0] < 1e9:
-                    raise ValueError(f"Column '{date_col}' looks like an ID or Category, not a Date. Please choose a temporal column.")
+        # ── Check for raw integer IDs being mapped to dates ──
+        if df[date_col].dtype in [np.int64, np.float64]:
+            sample = df[date_col].head(1)
+            if not sample.empty and sample.iloc[0] < 1e9:
+                raise ValueError(f"Column '{date_col}' looks like an ID or Category, not a Date. Please choose a temporal column.")
 
-            # Multi-pass date parsing
-            df["_date"] = pd.to_datetime(df[date_col], errors='coerce')
-            if df["_date"].isna().all():
-                df["_date"] = pd.to_datetime(df[date_col], errors='coerce', dayfirst=True)
-            if df["_date"].isna().all():
-                df["_date"] = pd.to_datetime(df[date_col], errors='coerce', format='mixed')
+        # Multi-pass date parsing
+        df["_date"] = pd.to_datetime(df[date_col], errors='coerce')
+        if df["_date"].isna().all():
+            df["_date"] = pd.to_datetime(df[date_col], errors='coerce', dayfirst=True)
+        if df["_date"].isna().all():
+            df["_date"] = pd.to_datetime(df[date_col], errors='coerce', format='mixed')
+        
+        if df["_date"].dt.tz is not None:
+            df["_date"] = df["_date"].dt.tz_localize(None)
+
+        if df["_date"].isna().any():
+            n_invalid = df["_date"].isna().sum()
+            warnings.append(f"{n_invalid} invalid dates found. Dropping them.")
+            df = df.dropna(subset=["_date"])
             
-            if df["_date"].dt.tz is not None:
-                df["_date"] = df["_date"].dt.tz_localize(None)
+        if df.empty or df["_date"].nunique() < 5:
+            raise ValueError(f"Insufficient distinct timeline points found in '{date_col}'. Need at least 5 unique dates to forecast.")
 
-            if df["_date"].isna().any():
-                n_invalid = df["_date"].isna().sum()
-                warnings.append(f"{n_invalid} invalid dates found. Dropping them.")
-                df = df.dropna(subset=["_date"])
-                
-            if df.empty or df["_date"].nunique() < 5:
-                raise ValueError(f"Insufficient distinct timeline points found in '{date_col}'. Need at least 5 unique dates to forecast.")
-
-            df = df.sort_values("_date").reset_index(drop=True)
-            info["sequential"] = False
+        df = df.sort_values("_date").reset_index(drop=True)
+        info["sequential"] = False
 
         info["date_min"] = df["_date"].min().isoformat()
         info["date_max"] = df["_date"].max().isoformat()
