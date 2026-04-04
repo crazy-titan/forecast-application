@@ -255,27 +255,27 @@ function showDetectedBanner(validation) {
   const range = `${formatDate(info.date_min)} — ${formatDate(info.date_max)}`;
 
   const items = [
-    {
-      label: "Frequency", value: info.freq_label || "—",
-      icon: `<svg viewBox="0 0 24 24"><path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H5V8h14v10z"></path></svg>`
+    { 
+      label: "Frequency", value: info.freq_label || "—", 
+      icon: `<svg viewBox="0 0 24 24"><path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H5V8h14v10z"></path></svg>` 
     },
-    {
-      label: "Seasonality", value: `${info.season_length || "—"} steps`,
-      icon: `<svg viewBox="0 0 24 24"><path d="M10 20h4V4h-4v16zm-6 0h4v-8H4v8zM16 9v11h4V9h-4z"></path></svg>`
+    { 
+      label: "Seasonality", value: `${info.season_length || "—"} steps`, 
+      icon: `<svg viewBox="0 0 24 24"><path d="M10 20h4V4h-4v16zm-6 0h4v-8H4v8zM16 9v11h4V9h-4z"></path></svg>` 
     },
-    {
-      label: "Date range", value: range,
-      icon: `<svg viewBox="0 0 24 24"><path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"></path></svg>`
+    { 
+      label: "Date range", value: range, 
+      icon: `<svg viewBox="0 0 24 24"><path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"></path></svg>` 
     },
-    {
-      label: "Total rows", value: (info.n_rows || 0).toLocaleString(),
-      icon: `<svg viewBox="0 0 24 24"><path d="M4 6h16V4H4v2zm0 5h16V9H4v2zm0 5h16v-2H4v2zm0 4h16v-2H4v2z"></path></svg>`
+    { 
+      label: "Total rows", value: (info.n_rows || 0).toLocaleString(), 
+      icon: `<svg viewBox="0 0 24 24"><path d="M4 6h16V4H4v2zm0 5h16V9H4v2zm0 5h16v-2H4v2zm0 4h16v-2H4v2z"></path></svg>` 
     },
-    {
-      label: "Series count", value: info.n_series || 1,
-      icon: `<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"></path></svg>`
+    { 
+      label: "Series count", value: info.n_series || 1, 
+      icon: `<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"></path></svg>` 
     },
-    {
+    { 
       label: "Stationarity", value: si.stationary === true ? "Stationary" : si.stationary === false ? "Correction Needed" : "—",
       color: si.stationary ? "var(--success)" : "var(--gold)",
       icon: `<svg viewBox="0 0 24 24"><path d="M3.5 18.49l6-6.01 4 4L22.69 7.3l-1.41-1.41-7.78 7.78-4-4-7.41 7.41 1.41 1.41z"></path></svg>`
@@ -343,65 +343,7 @@ function initModeToggle() {
 }
 
 function initRunButton() {
-  const btn = document.getElementById("runForecastBtn");
-  btn.addEventListener("click", () => runPipeline());
-
-  // --- Info Trigger / Tooltip Logic ---
-  document.addEventListener('mouseover', (e) => {
-    const trigger = e.target.closest('.info-trigger');
-    if (trigger) {
-      const info = trigger.getAttribute('data-info');
-      showIndustrialTooltip(e, info);
-    }
-  });
-
-  document.addEventListener('mouseout', (e) => {
-    if (e.target.closest('.info-trigger')) {
-      hideIndustrialTooltip();
-    }
-  });
-
-  // --- Chart Toolbar Initialization ---
-  initChartToolbar("forecastChart", "forecastToolbar");
-  initChartToolbar("historyOnlyChart", "historyToolbar");
-}
-
-function initChartToolbar(chartId, toolbarId) {
-    const toolbar = document.getElementById(toolbarId);
-    if (!toolbar) return;
-    
-    toolbar.addEventListener('click', (e) => {
-        const btn = e.target.closest('.btn-range');
-        if (!btn) return;
-        
-        // UI State
-        toolbar.querySelectorAll('.btn-range').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        
-        // Logic
-        const count = btn.getAttribute('data-count');
-        const step = btn.getAttribute('data-step');
-        const chart = document.getElementById(chartId);
-        
-        if (!chart || !chart.layout) return;
-
-        if (step === 'all') {
-            Plotly.relayout(chartId, { 
-                'xaxis.autorange': true,
-                'xaxis.range': null 
-            });
-        } else {
-            const now = new Date();
-            let start = new Date();
-            if (step === 'year') start.setFullYear(now.getFullYear() - parseInt(count));
-            if (step === 'month') start.setMonth(now.getMonth() - parseInt(count));
-            
-            Plotly.relayout(chartId, {
-                'xaxis.range': [start.toISOString(), now.toISOString()],
-                'xaxis.autorange': false
-            });
-        }
-    });
+  document.getElementById("runForecastBtn").onclick = runForecast;
 }
 
 async function runForecast() {
@@ -441,22 +383,12 @@ async function runForecast() {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      document.getElementById("loadingTitle").textContent = "Industrial-AI Engine: Still crunching complex patterns...";
+      document.getElementById("loadingTitle").textContent = "High-volume data detected: crunching complex patterns...";
     }, 12000);
 
     const res = await fetch(`${API}/forecast`, { method: "POST", body: fd, signal: controller.signal });
     clearTimeout(timeoutId);
-
-    if (!res.ok) {
-      const contentType = res.headers.get("content-type");
-      if (contentType && contentType.indexOf("application/json") !== -1) {
-        throw new Error((await res.json()).detail || `Server Error ${res.status}`);
-      } else {
-        // Likely a Render/HF Platform timeout or crash (HTML 502/504)
-        throw new Error(`Platform Error ${res.status}: The backend server may have exceeded memory limits or timed out. Try moving to Hugging Face or selecting fewer series.`);
-      }
-    }
-
+    if (!res.ok) throw new Error((await res.json()).detail || `HTTP ${res.status}`);
     const data = await res.json();
     hide("loading-section");
     hide("welcomeGuide");
@@ -467,12 +399,8 @@ async function runForecast() {
     scrollTo("results-section");
   } catch (err) {
     hide("loading-section");
-    const msg = err.message.includes("Unexpected token")
-      ? "Invalid server response (the backend might have crashed or timed out)."
-      : err.message;
-    showToast("Forecast failed", msg);
+    showToast("Forecast failed", err.message);
     scrollTo("settings-section");
-    console.error("Forecast Error:", err);
   }
 }
 
@@ -485,7 +413,7 @@ function animateSteps() {
   steps.forEach(s => s.classList.remove("active", "done"));
   let i = 0;
   const interval = setInterval(() => {
-    if (i > 0 && i <= steps.length) steps[i - 1].classList.replace("active", "done");
+    if (i > 0 && i <= steps.length) steps[i-1].classList.replace("active", "done");
     if (i < steps.length) {
       steps[i].classList.add("active");
       i++;
@@ -498,10 +426,10 @@ function animateSteps() {
 }
 
 function renderResults(data) {
-  const scores = data.model_scores || {};
-  const best = data.best_model || "SARIMA";
+  const scores   = data.model_scores || {};
+  const best     = data.best_model || "SARIMA";
   const warnings = data.warnings || [];
-  const hasMae = scores[best] != null && !isNaN(Number(scores[best]));
+  const hasMae   = scores[best] != null && !isNaN(Number(scores[best]));
   const cvFailed = warnings.some(w =>
     w.toLowerCase().includes("cv failed") ||
     w.toLowerCase().includes("not enough data for cv")
@@ -542,8 +470,8 @@ function renderResults(data) {
 }
 
 function showDataReport(data) {
-  const sc = data.supply_chain || {};
-  const hist = data.history || {};
+  const sc     = data.supply_chain || {};
+  const hist   = data.history || {};
   const series = Object.keys(hist);
   const warnings = data.warnings || [];
 
@@ -635,13 +563,13 @@ function closeDataReport(e) {
 }
 
 function renderTrustScore(data) {
-  const scores = data.model_scores || {};
-  const best = data.best_model || "";
-  const sc = data.supply_chain || {};
-  const avg = parseFloat(sc.avg_demand_per_period) || 0;
+  const scores   = data.model_scores || {};
+  const best     = data.best_model || "";
+  const sc       = data.supply_chain || {};
+  const avg      = parseFloat(sc.avg_demand_per_period) || 0;
   const warnings = data.warnings || [];
-  const cvData = data.cv_results || [];
-  const bar = document.getElementById("trustScoreBar");
+  const cvData   = data.cv_results || [];
+  const bar      = document.getElementById("trustScoreBar");
   if (!bar) return;
 
   // ── Detect CV failure conditions ──────────────────────────────────────
@@ -659,33 +587,33 @@ function renderTrustScore(data) {
 
   if (cvFailed || !hasMaeScore || cvData.length === 0) {
     // CV did not complete — cannot give a reliable score
-    label = "Cannot compute";
-    color = "#FF9800";
-    desc = "Cross-validation did not complete, so reliability cannot be measured. Check the warnings above.";
+    label   = "Cannot compute";
+    color   = "#FF9800";
+    desc    = "Cross-validation did not complete, so reliability cannot be measured. Check the warnings above.";
     subtext = warnings.find(w => w.toLowerCase().includes("cv") || w.toLowerCase().includes("order")) || "";
   } else if (avg <= 0) {
-    label = "Score unavailable";
-    color = "#a0aec0";
-    desc = "Average demand is zero — cannot calculate a meaningful reliability percentage.";
+    label   = "Score unavailable";
+    color   = "#a0aec0";
+    desc    = "Average demand is zero — cannot calculate a meaningful reliability percentage.";
   } else {
     // Core formula: how small is the error relative to average demand?
     trust = Math.max(0, Math.min(100, Math.round((1 - maeval / avg) * 100)));
     if (isNaN(trust)) {
-      label = "Cannot compute";
-      color = "#FF9800";
-      desc = "Score unavailable — errors were detected during statistical validation.";
+      label   = "Cannot compute";
+      color   = "#FF9800";
+      desc    = "Score unavailable — errors were detected during statistical validation.";
     } else if (trust >= 85) {
       label = `${trust}% Reliable`; color = "#00E676";
-      desc = "Excellent accuracy. This forecast is highly trustworthy for business decisions.";
+      desc  = "Excellent accuracy. This forecast is highly trustworthy for business decisions.";
     } else if (trust >= 65) {
       label = `${trust}% Reliable`; color = "#FFD600";
-      desc = "Good accuracy. Use this forecast as a strong guide, but allow for some flexibility.";
+      desc  = "Good accuracy. Use this forecast as a strong guide, but allow for some flexibility.";
     } else if (trust >= 40) {
       label = `${trust}% Reliable`; color = "#FF9800";
-      desc = "Moderate accuracy. Your data has high volatility — treat predictions with caution.";
+      desc  = "Moderate accuracy. Your data has high volatility — treat predictions with caution.";
     } else {
       label = `${trust}% Reliable`; color = "#FF1744";
-      desc = "Low accuracy. The model struggled with this data pattern. Try AutoPilot mode instead.";
+      desc  = "Low accuracy. The model struggled with this data pattern. Try AutoPilot mode instead.";
     }
   }
 
@@ -732,9 +660,9 @@ function renderHistoryOnlyChart(data) {
     const ys = hist.map(p => p.y);
 
     // Distinct fixed colors — different per trace TYPE, not per series
-    const RAW_COLOR = "#00E5FF";  // Cyan — raw actual data
+    const RAW_COLOR   = "#00E5FF";  // Cyan — raw actual data
     const TREND_COLOR = "#FF9800";  // Orange — smoothed trend
-    const ANOM_COLOR = "#FF1744";  // Red — anomalous outliers
+    const ANOM_COLOR  = "#FF1744";  // Red — anomalous outliers
 
     // Raw history line
     traces.push({
@@ -764,7 +692,7 @@ function renderHistoryOnlyChart(data) {
       if (Math.abs(y - mean) > 2.5 * std) {
         anomalyX.push(xs[i]);
         anomalyY.push(y);
-        anomalyText.push(`Anomaly: ${y.toFixed(1)} (${((y - mean) / std).toFixed(1)} std devs from average)`);
+        anomalyText.push(`Anomaly: ${y.toFixed(1)} (${((y-mean)/std).toFixed(1)} std devs from average)`);
       }
     });
     if (anomalyX.length) {
@@ -781,20 +709,36 @@ function renderHistoryOnlyChart(data) {
   Plotly.newPlot("historyOnlyChart", traces, {
     paper_bgcolor: paper,
     plot_bgcolor: paper,
-    font: { family: "Inter, sans-serif", color: textCol, size: 11 },
-    xaxis: {
-      gridcolor: gridCol,
-      title: "", 
+    font: { family: "Outfit, sans-serif", color: textCol },
+    xaxis: { 
+      gridcolor: gridCol, 
+      title: "Historical Time Range",
       type: "date",
-      tickformat: "%b %Y",
-      rangeselector: { visible: false },
-      fixedrange: false
+      tickformat: "%b %d, %Y",
+      rangeselector: {
+          buttons: [
+              {count: 1, label: '1y', step: 'year', stepmode: 'backward'},
+              {count: 1, label: '1m', step: 'month', stepmode: 'backward'},
+              {count: 7, label: '1w', step: 'day', stepmode: 'backward'},
+              {step: 'all', label: 'All'}
+          ],
+          bgcolor: 'rgba(255,255,255,0.05)',
+          activecolor: 'rgba(0,229,255,0.2)',
+          font: { color: '#ffffff', size: 10 }
+      }
     },
-    yaxis: { gridcolor: gridCol, title: "" },
-    legend: { orientation: "h", y: -0.15, font: { size: 10 } },
-    margin: { l: 40, r: 20, t: 20, b: 40 }, 
+    yaxis: { gridcolor: gridCol, title: "Actual Demand / Units" },
+    legend: { orientation: "h", y: -0.38 },
+    margin: { l: 70, r: 30, t: 70, b: 120 },
     hovermode: "closest",
-    annotations: [] // HARD DISABLE OVERLAPS
+    annotations: [
+      {
+        x: 0, y: 1.12, xref: 'paper', yref: 'paper', xanchor: 'left',
+        text: 'PURE DATA — Trend Line + Anomaly Detection',
+        showarrow: false, font: { color: textCol, size: 12, family: "Outfit, sans-serif" },
+        bgcolor: 'rgba(255,255,255,0.03)', borderpad: 6
+      }
+    ]
   }, { responsive: true, displayModeBar: false });
 }
 
@@ -823,9 +767,9 @@ function renderForecastChart(data) {
   const textCol = "#a0aec0";
 
   // Distinct fixed colors per trace type
-  const HISTORY_COLOR = "#00E5FF";  // Cyan  — actual historical data
+  const HISTORY_COLOR  = "#00E5FF";  // Cyan  — actual historical data
   const FORECAST_COLOR = "#FFD600";  // Gold  — AI predicted future line
-  const BAND_COLOR = "#9D4EDD";  // Purple — confidence bands
+  const BAND_COLOR     = "#9D4EDD";  // Purple — confidence bands
 
   const traces = [];
   const seriesIds = Object.keys(history);
@@ -900,24 +844,48 @@ function renderForecastChart(data) {
   const layout = {
     paper_bgcolor: paper,
     plot_bgcolor: paper,
-    font: { family: "Inter, sans-serif", color: textCol, size: 11 },
-    xaxis: {
-      gridcolor: gridCol,
-      title: "", 
+    font: { family: "Outfit, sans-serif", color: textCol },
+    xaxis: { 
+      gridcolor: gridCol, 
+      title: "Time Continuum (Past → Future)",
       type: "date",
-      tickformat: "%b %Y",
-      rangeselector: { visible: false }
+      tickformat: "%b %d, %Y",
+      rangeselector: {
+          buttons: [
+              {count: 1, label: '1y', step: 'year', stepmode: 'backward'},
+              {count: 6, label: '6m', step: 'month', stepmode: 'backward'},
+              {count: 1, label: '1m', step: 'month', stepmode: 'backward'},
+              {count: 7, label: '1w', step: 'day', stepmode: 'backward'},
+              {step: 'all', label: 'All'}
+          ],
+          bgcolor: 'rgba(255,255,255,0.05)',
+          activecolor: 'rgba(0,229,255,0.2)',
+          font: { color: '#ffffff', size: 10 }
+      }
     },
-    yaxis: { gridcolor: gridCol, title: "" },
-    legend: { orientation: "h", y: -0.15, font: { size: 10 } },
-    margin: { l: 40, r: 20, t: 20, b:40 }, 
+    yaxis: { gridcolor: gridCol, title: "Demand / Units" },
+    legend: { orientation: "h", y: -0.32 }, // Increased offset to avoid range selector overlap
+    margin: { l: 70, r: 30, t: 70, b: 120 }, // Increased bottom margin for rangeselector
     hovermode: "x unified",
-    annotations: [], // HARD DISABLE OVERLAPS
     shapes: [
       {
         type: 'line', x0: forecast[0]?.ds, x1: forecast[0]?.ds,
         y0: 0, y1: 1, yref: 'paper',
-        line: { color: 'rgba(255,255,255,0.2)', width: 1, dash: 'dot' }
+        line: { color: 'rgba(255,255,255,0.5)', width: 2, dash: 'dash' }
+      }
+    ],
+    annotations: [
+      {
+        x: 0, y: 1.12, xref: 'paper', yref: 'paper', xanchor: 'left',
+        text: 'PAST HISTORY (Your Sales)',
+        showarrow: false, font: { color: textCol, size: 13, family: "Outfit, sans-serif" },
+        bgcolor: 'rgba(255,255,255,0.03)', borderpad: 6
+      },
+      {
+        x: 1, y: 1.12, xref: 'paper', yref: 'paper', xanchor: 'right',
+        text: 'FUTURE PREDICTION (AI Forecast)',
+        showarrow: false, font: { color: "#00E5FF", size: 13, family: "Outfit, sans-serif" },
+        bgcolor: 'rgba(0, 229, 255, 0.1)', borderpad: 6
       }
     ]
   };
@@ -950,7 +918,7 @@ function renderComparisonChart(data) {
   const scores = data.model_scores || {};
   const best = data.best_model || "None";
   const sorted = Object.entries(scores).sort((a, b) => a[1] - b[1]);
-
+  
   if (sorted.length === 0) {
     document.getElementById("comparisonChart").innerHTML = `<div class="chart-empty-msg">Fallback model used — no comparative metrics available for this dataset size.</div>`;
     return;
@@ -1004,11 +972,11 @@ function renderResidualsChart(data) {
     paper_bgcolor: "rgba(0,0,0,0)",
     plot_bgcolor: "rgba(0,0,0,0)",
     font: { family: "Outfit, sans-serif", color: "#a0aec0", size: 11 },
-    xaxis: {
-      gridcolor: "rgba(255,255,255,0.06)",
+    xaxis: { 
+      gridcolor: "rgba(255,255,255,0.06)", 
       title: "Date",
       type: "date",
-      tickformat: "%b %d, %Y"
+      tickformat: "%b %d, %Y" // Prevents millisecond '...59.999' formatting
     },
     yaxis: { gridcolor: "rgba(255,255,255,0.06)", title: "Residual" },
     margin: { l: 55, r: 10, t: 10, b: 60 },
@@ -1067,27 +1035,27 @@ function renderSCMetrics(sc) {
     return `${Number(v).toFixed(1)}%`;
   };
   const tiles = [
-    {
+    { 
       label: "Avg demand / period", value: safe("avg_demand_per_period"), unit: "units",
       desc: "Baseline consumption rate per time period."
     },
-    {
+    { 
       label: "Total forecast", value: safe("total_forecast", 0), unit: "units", hl: true,
       desc: "Cumulative expected volume over the next forecast horizon."
     },
-    {
+    { 
       label: "Safety stock", value: safe("safety_stock", 0), unit: "units",
       desc: "Buffer inventory to absorb demand spikes or lead-time variance."
     },
-    {
+    { 
       label: "Reorder point (ROP)", value: safe("reorder_point", 0), unit: "units", hl: true,
       desc: "The inventory level that triggers an replenishment response."
     },
-    {
+    { 
       label: "Stockout risk", value: safePct("stockout_risk_pct"), unit: "",
       desc: "Statistical likelihood of depleting stock before arrival."
     },
-    {
+    { 
       label: "Service level", value: safePct("service_level_pct"), unit: "",
       desc: "Your target probability for meeting all customer demand."
     }
@@ -1172,7 +1140,7 @@ function rgba(hex, alpha) {
 }
 function escapeHtml(str) {
   if (!str) return "";
-  return str.replace(/[&<>]/g, function (m) {
+  return str.replace(/[&<>]/g, function(m) {
     if (m === "&") return "&amp;";
     if (m === "<") return "&lt;";
     if (m === ">") return "&gt;";
@@ -1187,30 +1155,86 @@ function showToast(title, msg) {
   window.toastTimer = setTimeout(hideToast, 12000);
 }
 
-function hideToast() {
-  document.getElementById("errorToast")?.classList.add("hidden");
+function updateThemeIcon() {
+  const icon = document.getElementById("themeIcon");
+  if (!icon) return;
+  icon.innerHTML = theme === "dark" ? "LIGHT" : "DARK";
+}
+function hideToast() { 
+  document.getElementById("errorToast").classList.add("hidden"); 
 }
 
 /* ═══════════════════════════════════════════════════════════
-   INDUSTRIAL TOOLTIP ENGINE
-   ═══════════════════════════════════════════════════════════ */
-function showIndustrialTooltip(e, text) {
-  let tip = document.getElementById('industrial-tooltip');
-  if (!tip) {
-    tip = document.createElement('div');
-    tip.id = 'industrial-tooltip';
-    tip.className = 'smart-tooltip';
-    document.body.appendChild(tip);
+   SMART TOOLTIP ENGINE — 3-second delayed tooltip on hover
+═══════════════════════════════════════════════════════════ */
+function initTooltips() {
+  // Create one shared tooltip element
+  const tip = document.createElement("div");
+  tip.id = "smartTooltip";
+  tip.className = "smart-tooltip";
+  tip.setAttribute("aria-hidden", "true");
+  document.body.appendChild(tip);
+
+  let timer = null;
+  let currentTarget = null;
+
+  function showTip(target) {
+    const text = target.getAttribute("data-tooltip");
+    if (!text) return;
+    tip.textContent = text;
+    tip.classList.add("visible");
+    positionTip(target);
   }
-  tip.textContent = text;
-  tip.classList.add('visible');
 
-  const rect = e.target.getBoundingClientRect();
-  tip.style.left = `${rect.left + window.scrollX}px`;
-  tip.style.top = `${rect.bottom + window.scrollY + 10}px`;
-}
+  function hideTip() {
+    clearTimeout(timer);
+    timer = null;
+    currentTarget = null;
+    tip.classList.remove("visible");
+  }
 
-function hideIndustrialTooltip() {
-  const tip = document.getElementById('industrial-tooltip');
-  if (tip) tip.classList.remove('visible');
+  function positionTip(target) {
+    const rect = target.getBoundingClientRect();
+    const tW = tip.offsetWidth;
+    const tH = tip.offsetHeight;
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const gap = 10;
+
+    // Default: above the element, centred
+    let top  = rect.top  + scrollY - tH - gap;
+    let left = rect.left + scrollX + rect.width / 2 - tW / 2;
+
+    // If not enough space above, flip below
+    if (top < scrollY + 8) {
+      top = rect.bottom + scrollY + gap;
+    }
+    // Keep within horizontal viewport
+    const vw = document.documentElement.clientWidth;
+    if (left < 8) left = 8;
+    if (left + tW > vw - 8) left = vw - tW - 8;
+
+    tip.style.top  = `${top}px`;
+    tip.style.left = `${left}px`;
+  }
+
+  // Use event delegation — works for dynamically added elements too
+  document.addEventListener("mouseover", (e) => {
+    const target = e.target.closest("[data-tooltip]");
+    if (!target || target === currentTarget) return;
+    currentTarget = target;
+    clearTimeout(timer);
+    timer = setTimeout(() => showTip(target), 3000);
+  });
+
+  document.addEventListener("mouseout", (e) => {
+    const target = e.target.closest("[data-tooltip]");
+    if (!target) return;
+    hideTip();
+  });
+
+  // Hide on click / scroll / focus loss
+  document.addEventListener("mousedown", hideTip);
+  document.addEventListener("scroll", hideTip, true);
+  document.addEventListener("keydown", hideTip);
 }
