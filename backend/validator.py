@@ -18,8 +18,11 @@ def validate_dataframe(
     info = {}
     stationarity = {}
 
+    # --- Sequential Mode Detection ---
+    is_sequential = (date_col == "__sequential__")
+    
     # Column existence
-    if date_col not in df.columns:
+    if not is_sequential and date_col not in df.columns:
         raise ValueError(f"Date column '{date_col}' not found. Available: {list(df.columns)}")
     if value_col not in df.columns:
         raise ValueError(f"Value column '{value_col}' not found. Available: {list(df.columns)}")
@@ -27,86 +30,76 @@ def validate_dataframe(
         warnings.append(f"ID column '{id_col}' not found – treating as single series.")
         id_col = None
 
-    # --- Universal date parsing ---
+    # --- Universal date parsing (or Sequential Generation) ---
     try:
-        # ── Check for raw integer IDs being mapped to dates ──
-        if df[date_col].dtype in [np.int64, np.float64]:
-            sample = df[date_col].head(1)
-            # If values are small (like 0, 1, 100), they aren't timestamps
-            if sample.iloc[0] < 1e9: # Less than 1970/1/1 in unix time
-                raise ValueError(f"Column '{date_col}' looks like an ID or Category, not a Date. Please choose a temporal column.")
+        if is_sequential:
+            # Generate dummy 1-day step timeline starting from 2000-01-01
+            df["_date"] = pd.to_datetime("2000-01-01") + pd.to_timedelta(range(len(df)), unit='D')
+            info["sequential"] = True
+            info["freq"] = "D"
+            info["freq_label"] = "Continuous Sequence"
+        else:
+            # ── Check for raw integer IDs being mapped to dates ──
+            if df[date_col].dtype in [np.int64, np.float64]:
+                sample = df[date_col].head(1)
+                if not sample.empty and sample.iloc[0] < 1e9:
+                    raise ValueError(f"Column '{date_col}' looks like an ID or Category, not a Date. Please choose a temporal column.")
 
-        # First attempt: let pandas guess
-        df["_date"] = pd.to_datetime(df[date_col], errors='coerce')
-        # ... rest of the smart logic ...
-        # [OMITTING PREVIOUS CODE FOR BREVITY - ASKING AI TO KEEP THE SMART LOGIC]
-        if df["_date"].isna().all():
-            df["_date"] = pd.to_datetime(df[date_col], errors='coerce', dayfirst=True)
-        if df["_date"].isna().all():
-            # Final attempt: direct string parsing if pandas infer fails
-            df["_date"] = pd.to_datetime(df[date_col], errors='coerce', format='mixed')
+            # Multi-pass date parsing
+            df["_date"] = pd.to_datetime(df[date_col], errors='coerce')
+            if df["_date"].isna().all():
+                df["_date"] = pd.to_datetime(df[date_col], errors='coerce', dayfirst=True)
+            if df["_date"].isna().all():
+                df["_date"] = pd.to_datetime(df[date_col], errors='coerce', format='mixed')
             
-        if df["_date"].dt.tz is not None:
-            df["_date"] = df["_date"].dt.tz_localize(None)
+            if df["_date"].dt.tz is not None:
+                df["_date"] = df["_date"].dt.tz_localize(None)
 
-        # ── Drop invalid dates and check for unique timelines ──
-        if df["_date"].isna().any():
-            n_invalid = df["_date"].isna().sum()
-            warnings.append(f"{n_invalid} invalid dates found. Dropping them.")
-            df = df.dropna(subset=["_date"])
-            
-        if df.empty or df["_date"].nunique() < 5:
-            raise ValueError(f"Insufficient distinct timeline points found in '{date_col}'. Need at least 5 unique dates to forecast.")
+            if df["_date"].isna().any():
+                n_invalid = df["_date"].isna().sum()
+                warnings.append(f"{n_invalid} invalid dates found. Dropping them.")
+                df = df.dropna(subset=["_date"])
+                
+            if df.empty or df["_date"].nunique() < 5:
+                raise ValueError(f"Insufficient distinct timeline points found in '{date_col}'. Need at least 5 unique dates to forecast.")
 
-        df = df.sort_values("_date").reset_index(drop=True)
+            df = df.sort_values("_date").reset_index(drop=True)
+            info["sequential"] = False
+
         info["date_min"] = df["_date"].min().isoformat()
         info["date_max"] = df["_date"].max().isoformat()
         info["date_range"] = f"{info['date_min']} → {info['date_max']}"
 
-        # --- Intelligent frequency detection ---
+        # --- Frequency detection ---
         if len(df) > 1:
             inferred_freq = pd.infer_freq(df["_date"])
             if inferred_freq:
                 info["freq"] = inferred_freq
                 freq_labels = {
-                    "D": "Daily", 
-                    "B": "Business Daily",
-                    "W": "Weekly", 
-                    "M": "Monthly", 
-                    "MS": "Monthly Start",
-                    "Q": "Quarterly", 
-                    "QS": "Quarterly Start",
-                    "H": "Hourly", 
-                    "Y": "Yearly", 
-                    "W-MON": "Weekly (Mon)",
-                    "W-SUN": "Weekly (Sun)"
+                    "D": "Daily", "B": "Business Daily", "W": "Weekly", 
+                    "M": "Monthly", "MS": "Monthly Start", "Q": "Quarterly", 
+                    "QS": "Quarterly Start", "H": "Hourly", "Y": "Yearly"
                 }
                 info["freq_label"] = freq_labels.get(inferred_freq, inferred_freq)
             else:
-                # Fallback: guess from median difference
                 diffs = df["_date"].diff().dropna()
                 median_days = diffs.dt.days.median()
                 if median_days == 1:
-                    info["freq"] = "D"
-                    info["freq_label"] = "Daily"
+                    info["freq"], info["freq_label"] = "D", "Daily"
                 elif 7 <= median_days <= 8:
-                    info["freq"] = "W"
-                    info["freq_label"] = "Weekly"
+                    info["freq"], info["freq_label"] = "W", "Weekly"
                 elif 28 <= median_days <= 31:
-                    info["freq"] = "M"
-                    info["freq_label"] = "Monthly"
-                elif 89 <= median_days <= 92:
-                    info["freq"] = "Q"
-                    info["freq_label"] = "Quarterly"
+                    info["freq"], info["freq_label"] = "M", "Monthly"
                 else:
-                    info["freq"] = "D"
-                    info["freq_label"] = "Unknown (treated as daily)"
+                    info["freq"], info["freq_label"] = "D", "Sequential Steps"
         else:
-            info["freq"] = "D"
-            info["freq_label"] = "Daily (single observation)"
+            info["freq"], info["freq_label"] = "D", "Single Event"
+
     except Exception as e:
-        sample_vals = df[date_col].head(10).tolist()
-        raise ValueError(f"Date column '{date_col}' parsing failed. Samples: {sample_vals}. Error: {e}")
+        if isinstance(e, ValueError) and ("choose a temporal column" in str(e) or "Insufficient distinct" in str(e)):
+            raise e
+        sample_vals = df[date_col].head(5).tolist() if not is_sequential else []
+        raise ValueError(f"Date processing failed. Error: {str(e)}. Samples: {sample_vals}")
 
     # --- Value column conversion ---
     try:

@@ -175,6 +175,12 @@ function showMappingSection(data) {
   valueSelect.innerHTML = "";
   idSelect.innerHTML = '<option value="">None (single series)</option>';
 
+  // Add Sequential Option (3.3 Upgrade)
+  const seqOpt = document.createElement("option");
+  seqOpt.value = "__sequential__";
+  seqOpt.textContent = "None (Sequential Steps)";
+  dateSelect.appendChild(seqOpt);
+
   cols.forEach(c => {
     const opt1 = document.createElement("option");
     opt1.value = c;
@@ -761,6 +767,8 @@ function renderForecastChart(data) {
   const gridCol = "rgba(255,255,255,0.06)";
   const textCol = "#a0aec0";
 
+  const isSequential = data?.validation?.info?.sequential;
+
   // Distinct fixed colors per trace type
   const HISTORY_COLOR  = "#00E5FF";  // Cyan  — actual historical data
   const FORECAST_COLOR = "#FFD600";  // Gold  — AI predicted future line
@@ -842,9 +850,9 @@ function renderForecastChart(data) {
     font: { family: "Outfit, sans-serif", color: textCol },
     xaxis: { 
       gridcolor: gridCol, 
-      title: "Time Continuum (Past → Future)",
-      type: "date",
-      tickformat: "%b %d, %Y",
+      title: isSequential ? "Step / Sequence Index" : "Time Continuum (Past → Future)",
+      type: isSequential ? "linear" : "date",
+      tickformat: isSequential ? null : "%b %d, %Y",
       rangeselector: { visible: false }
     },
     yaxis: { gridcolor: gridCol, title: "Demand / Units" },
@@ -896,15 +904,25 @@ function renderForecastChart(data) {
   Plotly.newPlot("forecastChart", traces, layout, { responsive: true, displayModeBar: false });
 }
 
-function renderComparisonChart(data) {
-  const scores = data.model_scores || {};
-  const best = data.best_model || "None";
+function renderComparisonChart(results) {
+  const scores = results.model_scores || {};
+  const best = results.best_model || "None";
   const sorted = Object.entries(scores).sort((a, b) => a[1] - b[1]);
+  const isSequential = results?.validation?.info?.sequential;
   
   if (sorted.length === 0) {
     document.getElementById("comparisonChart").innerHTML = `<div class="chart-empty-msg">Fallback model used — no comparative metrics available for this dataset size.</div>`;
     return;
   }
+
+  const layout = {
+    paper_bgcolor: "rgba(0,0,0,0)",
+    plot_bgcolor: "rgba(0,0,0,0)",
+    font: { family: "Outfit, sans-serif", color: "#a0aec0" },
+    xaxis: { title: "MAE (lower is better)", gridcolor: "rgba(255,255,255,0.06)" },
+    margin: { l: 130, r: 20, t: 10, b: 50 },
+    height: 300
+  };
 
   Plotly.newPlot("comparisonChart", [{
     type: "bar",
@@ -914,13 +932,7 @@ function renderComparisonChart(data) {
     marker: { color: sorted.map(([k]) => k === best ? "#00E5FF" : "rgba(157, 78, 221, 0.4)") },
     text: sorted.map(s => Number(s[1]).toFixed(2)),
     textposition: "auto"
-  }], {
-    paper_bgcolor: "rgba(0,0,0,0)",
-    plot_bgcolor: "rgba(0,0,0,0)",
-    font: { family: "Outfit, sans-serif", color: "#a0aec0" },
-    xaxis: { title: "MAE (lower is better)", gridcolor: "rgba(255,255,255,0.06)" },
-    margin: { l: 130, r: 20, t: 10, b: 50 }
-  }, { responsive: true, displayModeBar: false });
+  }], layout, { responsive: true, displayModeBar: false });
 
   const compExpl = document.querySelector("#comparisonChart + .chart-explanation");
   if (compExpl) compExpl.innerHTML = `<strong>Which model wins?</strong> We tested many forecasting methods against your data. The shortest bar above (<strong>${best}</strong>) had the smallest mathematical "error," making it the most reliable choice for your future predictions.`;
