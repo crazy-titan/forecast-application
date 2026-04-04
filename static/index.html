@@ -99,13 +99,33 @@
                 <button class="tab" data-tab="samples" data-tooltip="Try one of our pre-loaded real-world datasets instantly — no upload required.">Sample datasets</button>
             </div>
             <div class="tab-panel active" id="tab-upload">
-                <div class="upload-zone glass-panel" id="uploadZone" data-tooltip="Drag and drop any CSV file here, or click to browse. Max 10 MB. Any column structure is accepted.">
-                    <div class="upload-icon">
-                        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <div class="upload-grid">
+                    <div class="upload-zone glass-panel" id="uploadZone" data-tooltip="Drag and drop any CSV file here, or click to browse. Max 10 MB. Any column structure is accepted.">
+                        <div class="upload-icon">
+                            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div class="upload-text"><strong>Drop your CSV here</strong><span>or click to browse</span></div>
+                        <div class="upload-hint">Maximum 10 MB · CSV format · any column names</div>
+                        <input type="file" id="fileInput" accept=".csv" style="display:none" />
                     </div>
-                    <div class="upload-text"><strong>Drop your CSV here</strong><span>or click to browse</span></div>
-                    <div class="upload-hint">Maximum 10 MB · CSV format · any column names</div>
-                    <input type="file" id="fileInput" accept=".csv" style="display:none" />
+
+                    <div class="requirements-card glass-panel">
+                        <h4>Dataset Requirements</h4>
+                        <ul class="req-list">
+                            <li>
+                                <strong>1. Time Column:</strong>
+                                <span>A column with dates (e.g., 2024-01-01). Avoid using IDs or Names here.</span>
+                            </li>
+                            <li>
+                                <strong>2. Value Column:</strong>
+                                <span>A numeric column to forecast (Sales, Demand, Quantity).</span>
+                            </li>
+                            <li>
+                                <strong>3. Data Density:</strong>
+                                <span>At least 5 unique dates are required to detect a pattern.</span>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
                 <div class="data-sources-tip">
                     <strong>Data sources we recommend:</strong>

@@ -1261,3 +1261,70 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .diag-value {
     transition: all 0.3s ease;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   DATASET REQUIREMENTS GUIDE (3.2)
+   ═══════════════════════════════════════════════════════════ */
+.upload-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.requirements-card {
+    padding: 1.8rem;
+    background: rgba(0, 229, 255, 0.02);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.requirements-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 4px; height: 100%;
+    background: var(--accent-cyan);
+    opacity: 0.5;
+}
+
+.requirements-card h4 {
+    color: var(--accent-cyan);
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1.2rem;
+}
+
+.req-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+
+.req-list li strong {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    margin-bottom: 0.2rem;
+}
+
+.req-list li span {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    display: block;
+}
+
+.map-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+    font-style: italic;
+}
+
+@media screen and (max-width: 900px) {
+    .upload-grid { grid-template-columns: 1fr; }
+    .requirements-card { order: 2; }
+}
