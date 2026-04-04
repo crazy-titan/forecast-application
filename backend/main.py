@@ -25,12 +25,12 @@ from backend.pdf_exporter import make_pdf_report
 
 # --- Model Label Mapping (3.1.5 Upgrade) ---
 MODEL_LABELS = {
-    "SARIMA (Auto)": "Seasonal AI Engine",
-    "SARIMA": "Seasonal AI Engine",
-    "AutoETS": "Adaptive Smoothing AI",
-    "DynamicOptimizedTheta": "Optimized Curve-Fitting",
-    "SeasonalNaive": "Seasonal Persistence",
-    "HistoricAverage": "Historic Baseline (Avg)"
+    "SARIMA (Auto)": "SARIMA (Auto)",
+    "SARIMA": "SARIMA (Manual)",
+    "AutoETS": "AutoETS",
+    "DynamicOptimizedTheta": "DynamicOptimizedTheta",
+    "SeasonalNaive": "SeasonalNaive",
+    "HistoricAverage": "HistoricAverage"
 }
 
 def get_theory(results, validation):
