@@ -111,15 +111,16 @@ def run_pipeline(
         print("[ENGINE-LOG] Fitting statistical engine models...")
         sf_core = StatsForecast(models=all_models, freq=freq, n_jobs=N_JOBS)
         sf_core.fit(train)
-        print("[ENGINE-LOG] Generating future horizons...")
-        point_preds = sf_core.predict(h=horizon)
+        print("[ENGINE-LOG] Generating future horizons (Probabilistic Mode)...")
+        # Optimization: Single call for both point and confidence intervals
         prob_preds = sf_core.predict(h=horizon, level=[80, 95])
+        point_preds = prob_preds # point_preds is used for metrics/scoring
     except Exception as e:
         print(f"[ENGINE-LOG] fit process error: {str(e)[:120]}. Falling back.")
         sf_core = StatsForecast(models=baseline, freq=freq, n_jobs=N_JOBS)
         sf_core.fit(train)
-        point_preds = sf_core.predict(h=horizon)
-        prob_preds = point_preds
+        prob_preds = sf_core.predict(h=horizon)
+        point_preds = prob_preds
 
     results["point_preds"] = point_preds
     results["prob_preds"] = prob_preds
@@ -150,18 +151,12 @@ def run_pipeline(
         else:
             results["best_model"] = "SeasonalNaive"
     except Exception as e:
-        print(f"[ENGINE-LOG] assessment error: {str(e)[:80]}")
-        results["best_model"] = "SeasonalNaive"
-
-        del test_preds
-        gc.collect()
-
-    except Exception as e:
         results["errors"].append(f"Scoring failed ({str(e)[:80]}). Using last model.")
         nm = [m.alias if hasattr(m,"alias") else m.__class__.__name__ for m in all_models]
         results["best_model"] = nm[-1] if nm else "SeasonalNaive"
         results["model_scores"] = {}
         results["eval_agg"] = pd.DataFrame()
+        gc.collect()
 
     # ── 5. RESIDUALS ──────────────────────────────────────────────────────
     try:

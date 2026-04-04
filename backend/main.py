@@ -15,6 +15,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+import gc
 
 from backend.session_manager import create_session, get_session, update_session, delete_session
 from backend.validator import validate_file_size, validate_dataframe
@@ -453,6 +454,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 if __name__ == "__main__":
     import uvicorn
     # Use environment port for deployment, default to 8000 for local runs
-    port = int(os.environ.get("PORT", 8000))
+    # Default to 7860 for Hugging Face, or 8000 for local runs
+    port = int(os.environ.get("PORT", 7860))
     # In production, we usually use Gunicorn, but this helps local debugging
     uvicorn.run("backend.main:app", host="0.0.0.0", port=port, reload=False if os.environ.get("PORT") else True)

@@ -383,12 +383,22 @@ async function runForecast() {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      document.getElementById("loadingTitle").textContent = "High-volume data detected: crunching complex patterns...";
+      document.getElementById("loadingTitle").textContent = "Industrial-AI Engine: Still crunching complex patterns...";
     }, 12000);
 
     const res = await fetch(`${API}/forecast`, { method: "POST", body: fd, signal: controller.signal });
     clearTimeout(timeoutId);
-    if (!res.ok) throw new Error((await res.json()).detail || `HTTP ${res.status}`);
+    
+    if (!res.ok) {
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        throw new Error((await res.json()).detail || `Server Error ${res.status}`);
+      } else {
+        // Likely a Render/HF Platform timeout or crash (HTML 502/504)
+        throw new Error(`Platform Error ${res.status}: The backend server may have exceeded memory limits or timed out. Try moving to Hugging Face or selecting fewer series.`);
+      }
+    }
+    
     const data = await res.json();
     hide("loading-section");
     hide("welcomeGuide");
@@ -399,8 +409,12 @@ async function runForecast() {
     scrollTo("results-section");
   } catch (err) {
     hide("loading-section");
-    showToast("Forecast failed", err.message);
+    const msg = err.message.includes("Unexpected token") 
+      ? "Invalid server response (the backend might have crashed or timed out)."
+      : err.message;
+    showToast("Forecast failed", msg);
     scrollTo("settings-section");
+    console.error("Forecast Error:", err);
   }
 }
 
