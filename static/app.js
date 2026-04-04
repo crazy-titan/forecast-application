@@ -714,18 +714,7 @@ function renderHistoryOnlyChart(data) {
       gridcolor: gridCol, 
       title: "Historical Time Range",
       type: "date",
-      tickformat: "%b %d, %Y",
-      rangeselector: {
-          buttons: [
-              {count: 1, label: '1y', step: 'year', stepmode: 'backward'},
-              {count: 1, label: '1m', step: 'month', stepmode: 'backward'},
-              {count: 7, label: '1w', step: 'day', stepmode: 'backward'},
-              {step: 'all', label: 'All'}
-          ],
-          bgcolor: 'rgba(255,255,255,0.05)',
-          activecolor: 'rgba(0,229,255,0.2)',
-          font: { color: '#ffffff', size: 10 }
-      }
+      tickformat: "%b %d, %Y"
     },
     yaxis: { gridcolor: gridCol, title: "Actual Demand / Units" },
     legend: { orientation: "h", y: -0.38 },
@@ -733,7 +722,7 @@ function renderHistoryOnlyChart(data) {
     hovermode: "closest",
     annotations: [
       {
-        x: 0, y: 1.12, xref: 'paper', yref: 'paper', xanchor: 'left',
+        x: 0.5, y: 1.12, xref: 'paper', yref: 'paper', xanchor: 'center',
         text: 'PURE DATA — Trend Line + Anomaly Detection',
         showarrow: false, font: { color: textCol, size: 12, family: "Outfit, sans-serif" },
         bgcolor: 'rgba(255,255,255,0.03)', borderpad: 6
@@ -850,22 +839,11 @@ function renderForecastChart(data) {
       title: "Time Continuum (Past → Future)",
       type: "date",
       tickformat: "%b %d, %Y",
-      rangeselector: {
-          buttons: [
-              {count: 1, label: '1y', step: 'year', stepmode: 'backward'},
-              {count: 6, label: '6m', step: 'month', stepmode: 'backward'},
-              {count: 1, label: '1m', step: 'month', stepmode: 'backward'},
-              {count: 7, label: '1w', step: 'day', stepmode: 'backward'},
-              {step: 'all', label: 'All'}
-          ],
-          bgcolor: 'rgba(255,255,255,0.05)',
-          activecolor: 'rgba(0,229,255,0.2)',
-          font: { color: '#ffffff', size: 10 }
-      }
+      rangeselector: { visible: false }
     },
     yaxis: { gridcolor: gridCol, title: "Demand / Units" },
-    legend: { orientation: "h", y: -0.32 }, // Increased offset to avoid range selector overlap
-    margin: { l: 70, r: 30, t: 70, b: 120 }, // Increased bottom margin for rangeselector
+    legend: { orientation: "h", y: -0.2 }, 
+    margin: { l: 70, r: 30, t: 50, b: 80 }, 
     hovermode: "x unified",
     shapes: [
       {
@@ -876,16 +854,14 @@ function renderForecastChart(data) {
     ],
     annotations: [
       {
-        x: 0, y: 1.12, xref: 'paper', yref: 'paper', xanchor: 'left',
-        text: 'PAST HISTORY (Your Sales)',
-        showarrow: false, font: { color: textCol, size: 13, family: "Outfit, sans-serif" },
-        bgcolor: 'rgba(255,255,255,0.03)', borderpad: 6
+        x: 0, y: 1.08, xref: 'paper', yref: 'paper', xanchor: 'left',
+        text: 'PAST HISTORY',
+        showarrow: false, font: { color: textCol, size: 12, family: "Outfit, sans-serif" }
       },
       {
-        x: 1, y: 1.12, xref: 'paper', yref: 'paper', xanchor: 'right',
-        text: 'FUTURE PREDICTION (AI Forecast)',
-        showarrow: false, font: { color: "#00E5FF", size: 13, family: "Outfit, sans-serif" },
-        bgcolor: 'rgba(0, 229, 255, 0.1)', borderpad: 6
+        x: 1, y: 1.08, xref: 'paper', yref: 'paper', xanchor: 'right',
+        text: 'AI FUTURE PREDICTION',
+        showarrow: false, font: { color: "#00E5FF", size: 12, family: "Outfit, sans-serif" }
       }
     ]
   };
