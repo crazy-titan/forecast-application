@@ -450,22 +450,46 @@
         </div>
     </section>
 
-    <!-- Data Transparency Modal -->
-    <div class="modal-overlay hidden" id="dataReportOverlay" onclick="closeDataReport(event)">
-        <div class="modal-panel" id="dataReportPanel">
+    <!-- Data Insights / Pre-flight Diagnostic Modal (3.1.3 Upgrade) -->
+    <div class="modal-overlay hidden" id="dataInsightsOverlay">
+        <div class="modal-panel" id="dataInsightsPanel">
             <div class="modal-header">
                 <div class="modal-title-group">
-                    <svg viewBox="0 0 24 24" class="modal-icon"><path d="M9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4zM5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" fill="currentColor"/></svg>
-                    <h3>Data Processing Report</h3>
+                    <svg viewBox="0 0 24 24" class="modal-icon" style="color: var(--accent-blue)"><path d="M13 16h-2v-4h2v4zm0-6h-2V7h2v3zm-1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/></svg>
+                    <h3>Data Intelligence Report</h3>
                 </div>
-                <button class="modal-close" onclick="closeDataReport()">
+                <button class="modal-close" id="closeInsightsBtn">
                     <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                 </button>
             </div>
-            <p class="modal-subtitle">Everything ChainCast processed, assumed, or skipped during your forecast run.</p>
-            <div class="modal-body" id="dataReportBody"></div>
+            <p class="modal-subtitle">ChainCast scanned your dataset profile. Here is the AI's diagnostic findings and plan.</p>
+            
+            <div class="modal-body">
+                <div class="diagnostic-grid">
+                    <div class="diag-card">
+                        <div class="diag-label">DATA PERSONALITY</div>
+                        <div class="diag-value" id="diagPersonality">--</div>
+                    </div>
+                    <div class="diag-card">
+                        <div class="diag-label">HEALTH STATUS</div>
+                        <div class="diag-value" id="diagHealth">--</div>
+                    </div>
+                </div>
+
+                <div class="diag-full-section">
+                    <div class="diag-label">DIAGNOSTIC FINDINGS</div>
+                    <p class="diag-text" id="diagFindings">--</p>
+                </div>
+
+                <div class="diag-full-section" style="border-top: 1px solid var(--panel-border); padding-top: 1.5rem;">
+                    <div class="diag-label" style="color: var(--accent-blue)">AI FORECASTING STRATEGY</div>
+                    <div class="strategy-callout" id="diagStrategy">--</div>
+                    <p class="diag-text" id="diagStrategyMsg">--</p>
+                </div>
+            </div>
+
             <div class="modal-footer">
-                <button class="btn-primary" onclick="closeDataReport()">Got it, show my forecast</button>
+                <button class="btn-primary" style="width: 100%" id="confirmInsightsBtn">Got it, run forecast</button>
             </div>
         </div>
     </div>

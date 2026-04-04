@@ -240,8 +240,9 @@ function initMappingConfirm() {
       showDetectedBanner(data.validation);
       updateAutoSummary(data.validation.info);
       populateSeries(allSeries);
-      show("settings-section");
-      scrollTo("settings-section");
+      
+      // Trigger Pre-flight Diagnostic Modal (3.1.3 Upgrade)
+      showDataInsights(data.personality);
     } catch (err) {
       hideLoading();
       showToast("Validation failed", err.message);
