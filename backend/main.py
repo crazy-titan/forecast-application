@@ -135,8 +135,11 @@ def to_float(val, default):
 
 # --- API Routes ---
 @app.post("/session/start")
-def start_session():
-    return {"session_id": create_session()}
+def create_session_route(session_id: str = None) -> str:
+    """Create a new session with a unique temporary folder. Optionally re-sync an old ID."""
+    if not session_id:
+        session_id = str(uuid.uuid4())
+    return {"session_id": create_session(session_id)}
 
 @app.delete("/session/{session_id}")
 def end_session(session_id: str):
@@ -207,7 +210,14 @@ async def upload(file: UploadFile = File(...), session_id: str = Form(...)):
         
     try:
         # ── 2. Detailed CSV Parsing via Bytes (RAM GUARD) ──────────────────
-        sess = get_session(session_id)
+        try:
+            sess = get_session(session_id)
+        except KeyError:
+            # AUTO-HEAL: Create a fresh session if the old one expired (3.4.2 Upgrade)
+            from backend.session_manager import create_session as create_new
+            create_new(session_id)
+            sess = get_session(session_id)
+            
         path = os.path.join(sess["folder"], "data.csv")
         
         # Save raw bytes to disk instantly, preventing Pandas from inflating RAM

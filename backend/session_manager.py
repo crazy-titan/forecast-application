@@ -7,9 +7,10 @@ from typing import Dict, Any
 # In-memory session storage (suitable for development)
 _sessions: Dict[str, Dict[str, Any]] = {}
 
-def create_session() -> str:
-    """Create a new session with a unique temporary folder."""
-    session_id = str(uuid.uuid4())
+def create_session(session_id: str = None) -> str:
+    """Create a new session with a unique temporary folder. Optionally re-sync an old ID."""
+    if not session_id:
+        session_id = str(uuid.uuid4())
     folder = tempfile.mkdtemp(prefix="chaincast_")
     _sessions[session_id] = {
         "folder": folder,
