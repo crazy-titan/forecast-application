@@ -149,6 +149,20 @@ a:hover { color: #fff; text-shadow: var(--shadow-glow); }
 .g-text span { font-size: 0.85rem; color: var(--text-secondary); }
 .g-arrow { font-size: 1.5rem; color: var(--text-muted); }
 
+/* Core Intelligence Grid (3.4.5 Upgrade) */
+#intelligence-section { margin-top: -3rem; margin-bottom: 4rem; position: relative; z-index: 10; }
+.intel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+.intel-card { padding: 2.5rem 2rem; text-align: center; border-radius: 20px; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s; border: 1px solid rgba(255,255,255,0.03); }
+.intel-card:hover { transform: translateY(-12px); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 229, 255, 0.1); border-color: rgba(0, 229, 255, 0.2); }
+.intel-icon { font-size: 3rem; margin-bottom: 1.5rem; display: block; filter: drop-shadow(0 0 15px rgba(255,255,255,0.2)); }
+.intel-card h3 { font-size: 1.4rem; margin-bottom: 1rem; color: #fff; font-weight: 700; }
+.intel-card p { font-size: 1rem; color: var(--text-muted); line-height: 1.6; }
+
+@media (max-width: 900px) {
+    .intel-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+    #intelligence-section { margin-top: 2rem; }
+}
+
 /* Final Polish: Executive Summary */
 .exec-summary-wrap {
     margin-bottom: 2rem;
