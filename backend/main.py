@@ -26,39 +26,38 @@ from backend.pdf_exporter import make_pdf_report
 SAMPLE_DATASETS = {}  # Add sample datasets later if desired
 
 def get_theory(results, validation):
-    """Generates 7 dynamic steps explaining the personalized methodology."""
+    """Generates 7 dynamic steps explaining the methodology in plain English."""
     info = validation.get("info", {})
-    stat = validation.get("stationarity", {})
-    best = results.get("best_model", "AutoETS")
+    best = results.get("best_model", "SARIMA (Auto)")
     
     steps = [
         {
-            "header": "1. Data Sanitization",
-            "body": f"The engine analyzed your dataset and processed {info.get('n_rows',0):,} observations. Our pipeline is optimized to maintain high accuracy while ensuring rapid response times for up to 50,000 data points."
+            "header": "1. Data Cleaning",
+            "body": f"We scanned {info.get('n_rows',0):,} rows of history. Our engine cleaned up any missing dates or 'gaps' to create a smooth baseline for forecasting."
         },
         {
-            "header": "2. Signal Stability Analysis",
-            "body": "We performed an Augmented Dickey-Fuller (ADF) test to detect trend or volatility. Data was adjusted to remove structural noise, ensuring the model focuses on the true underlying demand signal."
+            "header": "2. Signal Stability Check",
+            "body": "The AI looked for 'noise' vs. 'signal.' It identifies if your demand is stable or jumping around, making sure the forecast isn't fooled by one-off spikes."
         },
         {
-            "header": "3. Seasonality Detection",
-            "body": f"We identified a recurring {info.get('season_length',7)}-step seasonal pattern in your history. This cyclical 'heartbeat' is critical for predicting future peaks and troughs with precision."
+            "header": "3. The 'Seasonal Heartbeat'",
+            "body": f"Every business has a rhythm. We detected a patterns that repeats every {info.get('season_length',7)} steps—like a weekly or monthly heartbeat."
         },
         {
-            "header": "4. Model Selection Analysis",
-            "body": f"For industrial-scale history (up to 5 years), standard academic models can be inefficient. We promoted your series to {best}, an advanced AI-driven model optimized for supply chain forecasting."
+            "header": "4. Model Selection (The Winner)",
+            "body": f"We tested multiple mathematical models against your history. The '{best}' model won because it predicted your past most accurately."
         },
         {
-            "header": "5. Back-testing & Validation",
-            "body": "The engine simulated past forecasts against your actual history to measure error rates. This ensures the current prediction is validated by real-world performance metrics."
+            "header": "5. Back-testing (The Reality Check)",
+            "body": "Before showing you results, the AI 'simulates' the past. It hides some data and tries to predict it. If it succeeds there, we trust it for the future."
         },
         {
-            "header": "6. Inventory Metrics Calculation",
-            "body": "Statistical predictions were converted into operational units. We calculated Safety Stock and Reorder Points using a 95% service level to safeguard against demand spikes."
+            "header": "6. Buffer & Risk Planning",
+            "body": "We don't just give you one number. We calculate 'Safety Stock'—the extra buffer you need to handle unexpected demand surges without running out."
         },
         {
-            "header": "7. Extended Horizon Mapping",
-            "body": "Your dashboard now visualizes up to 5 years of history. Use the granular range selectors to analyze long-term trends or zoom into recent demand changes."
+            "header": "7. Long-Range Trend Mapping",
+            "body": "Finally, we look at where your business is going over the next few months or years. Use the range buttons below the chart to see the big picture."
         }
     ]
     return {"steps": steps}

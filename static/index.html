@@ -91,8 +91,8 @@
         <div class="container">
             <div class="section-header">
                 <span class="step-badge">Step 1</span>
-                <h2>Choose your dataset</h2>
-                <p>Upload a CSV file or pick a built-in sample</p>
+                <h2>Pick your data</h2>
+                <p>Upload your own CSV file or try one of our built-in samples</p>
             </div>
             <div class="tab-row">
                 <button class="tab active" data-tab="upload" data-tooltip="Upload your own CSV file. Any column names work — you'll map them in the next step.">Upload CSV</button>
@@ -167,9 +167,9 @@
     <section class="section hidden" id="settings-section">
         <div class="container">
             <div class="section-header">
-                <span class="step-badge">Step 3</span>
-                <h2>Configure forecast</h2>
-                <p>Auto mode chooses optimal parameters. Manual mode gives you full control.</p>
+                <span class="step-badge">Step 2</span>
+                <h2>Set your targets</h2>
+                <p>Tell the AI how many days to predict and how much buffer stock you need</p>
             </div>
             <div class="detected-banner" id="detectedBanner"></div>
             <div class="mode-toggle-wrap">
@@ -268,10 +268,11 @@
                         <div class="param-row"><label>Max q (MA order)</label><input type="number" id="pQ" value="3"
                                 min="0" max="10" /></div>
                     </div>
-                    <div class="param-group">
-                        <h4>Seasonal (P, D, Q)</h4>
-                        <div class="param-row"><label>Max P</label><input type="number" id="pSP" value="2" min="0"
-                                max="5" /></div>
+                    <div class="input-group" data-tooltip="The number of days our AI should look into the future. Example: '14' for a two-week forecast.">
+                        <label>Prediction length (days)</label>
+                        <input type="number" id="horizonInput" value="14" min="1" max="365" />
+                    </div>
+            max="5" /></div>
                         <div class="param-row"><label>Max D</label><input type="number" id="pSD" value="1" min="0"
                                 max="2" /></div>
                         <div class="param-row"><label>Max Q</label><input type="number" id="pSQ" value="2" min="0"
@@ -324,13 +325,13 @@
                 <div class="spinner-ring"></div>
                 <h3 id="loadingTitle">Running forecast pipeline</h3>
                 <div class="loading-steps">
-                    <div class="lstep">Validating data and checking stationarity</div>
-                    <div class="lstep">Fitting baseline models</div>
-                    <div class="lstep">Running AutoARIMA optimisation</div>
-                    <div class="lstep">Running cross-validation</div>
-                    <div class="lstep">Generating forecast and prediction intervals</div>
-                    <div class="lstep">Computing supply chain metrics</div>
-                    <div class="lstep">Finalising results</div>
+                    <div class="lstep">Checking if your data is stable...</div>
+                    <div class="lstep">Looking for patterns and 'beats' in history...</div>
+                    <div class="lstep">Testing the Smart Pattern-Matcher AI (SARIMA)...</div>
+                    <div class="lstep">Measuring accuracy for different models...</div>
+                    <div class="lstep">Generating predictions for the future...</div>
+                    <div class="lstep">Calculating your inventory buffers...</div>
+                    <div class="lstep">Finalising your industrial report...</div>
                 </div>
             </div>
         </div>
@@ -343,7 +344,7 @@
                 <h2>Forecast results</h2>
                 <div class="results-actions">
                     <button class="btn-secondary" id="downloadCsvBtn" data-tooltip="Download your future forecast as a spreadsheet (CSV). Includes predicted values and 80%/95% confidence bands.">Export CSV</button>
-                    <button class="btn-secondary" id="downloadPdfBtn" data-tooltip="Download a full 6-page PDF report: data summary, what was skipped, model comparison table, supply chain parameters, and the complete forecast.">Export PDF report</button>
+                    <button class="btn-secondary" id="downloadPdfBtn" data-tooltip="Download a detailed PDF report including an 'Industrial Dictionary' explaining all keywords and results.">Export PDF report</button>
                     <button class="btn-ghost" id="newForecastBtn" data-tooltip="Go back to upload a new dataset and start fresh. Your current results will be cleared.">New forecast</button>
                 </div>
             </div>
