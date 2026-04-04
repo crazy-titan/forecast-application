@@ -283,7 +283,12 @@ def map_columns(
     mapping = {"date_col": final_date, "value_col": final_value, "id_col": final_id}
     update_session(session_id, "mapping", mapping)
     update_session(session_id, "validation", validation)
-    return {"mapping": mapping, "validation": validation, "series_list": validation["series_list"]}
+    return {
+        "mapping": mapping, 
+        "validation": validation, 
+        "series_list": validation.get("series_list", []),
+        "personality": validation.get("personality", {})
+    }
 
 @app.post("/forecast")
 def forecast(

@@ -1261,7 +1261,12 @@ function initChartToolbar(chartId, toolbarId) {
 }
 
 function showDataInsights(p) {
-    if (!p) return;
+    if (!p || !p.type) {
+        // Fallback: If AI diagnostics fail/missing, just proceed to settings
+        show("settings-section");
+        scrollTo("settings-section");
+        return;
+    }
     document.getElementById("diagPersonality").textContent = p.type || "--";
     const healthEl = document.getElementById("diagHealth");
     healthEl.textContent = p.health || "--";
