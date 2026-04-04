@@ -72,10 +72,10 @@ def run_pipeline(
         raise ValueError("No valid data points found. Please check your mapping.")
 
     # ── 1. SPEED GUARD: Aggressive Resource Optimization ──────────────────
-    # Cap at 300 rows for Auto Mode to ensure sub-10s response on restricted CPUs
-    MAX_TRAIN_ROWS = 300 if mode == "auto" else 500
+    # Increased for Hugging Face (16GB RAM) - supports 10+ years of daily data
+    MAX_TRAIN_ROWS = 5000 
     df_sf = df_sf.groupby("unique_id").tail(MAX_TRAIN_ROWS).reset_index(drop=True)
-    print(f"[ENGINE-LOG] Training history capped at {MAX_TRAIN_ROWS} rows for performance.")
+    print(f"[ENGINE-LOG] Training history capacity: {MAX_TRAIN_ROWS} rows.")
 
     # Minimum rows needed
     min_rows_needed = max(horizon * 2, season_length * 2, 10)
