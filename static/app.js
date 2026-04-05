@@ -1347,13 +1347,20 @@ function renderSpotlightChart(data) {
 
   seriesIds.forEach(uid => {
     const rows = forecast.filter(r => (r.unique_id || "Series_1") === uid);
-    const xs = rows.map(r => r.ds);
+    if (!rows.length) return;
+
     const cols = Object.keys(rows[0]).filter(k => !["unique_id", "ds"].includes(k));
-    const bestCol = cols.find(c => c === data.best_model) || cols.find(c => !c.includes("-")) || cols[0];
+    // Robust Column Detection Logic
+    const bestCol = cols.find(c => c === data.best_model) || 
+                    cols.find(c => !c.includes("-lo") && !c.includes("-hi")) || 
+                    cols[0];
+    
     const lo95 = cols.find(c => c.includes("-lo-95"));
     const hi95 = cols.find(c => c.includes("-hi-95"));
     const lo80 = cols.find(c => c.includes("-lo-80"));
     const hi80 = cols.find(c => c.includes("-hi-80"));
+
+    const xs = rows.map(r => r.ds);
 
     if (lo95 && hi95) {
       traces.push({
@@ -1361,7 +1368,7 @@ function renderSpotlightChart(data) {
         y: [...rows.map(r => r[hi95] ?? null), ...rows.map(r => r[lo95] ?? null).reverse()],
         fill: "toself", fillcolor: "rgba(157, 78, 221, 0.08)",
         line: { color: "transparent" }, name: `${uid} (95% Strategic Zone)`,
-        hoverinfo: "skip"
+        showlegend: false, hoverinfo: "skip"
       });
     }
     if (lo80 && hi80) {
@@ -1370,13 +1377,13 @@ function renderSpotlightChart(data) {
         y: [...rows.map(r => r[hi80] ?? null), ...rows.map(r => r[lo80] ?? null).reverse()],
         fill: "toself", fillcolor: "rgba(157, 78, 221, 0.25)",
         line: { color: "transparent" }, name: `${uid} (80% Normal Operations)`,
-        hoverinfo: "skip"
+        showlegend: false, hoverinfo: "skip"
       });
     }
     if (bestCol) {
       traces.push({
         x: xs, y: rows.map(r => r[bestCol] ?? null),
-        name: `${uid} Expected Trend`, type: "scatter", mode: "lines+markers",
+        name: `${uid} Strategy Trend`, type: "scatter", mode: "lines+markers",
         line: { color: FORECAST_COLOR, width: 3 },
         marker: { size: 6, color: FORECAST_COLOR, symbol: "diamond" }
       });
@@ -1388,29 +1395,31 @@ function renderSpotlightChart(data) {
     font: { family: "Outfit, sans-serif", color: textCol },
     xaxis: { 
       gridcolor: gridCol, type: "date", tickformat: "%b %d, %Y",
-      title: "Strategy Horizon (Future Strategy)"
+      title: "Strategy Horizon (Future Strategy Prediction)"
     },
     yaxis: { gridcolor: gridCol, title: "Predicted Units" },
-    legend: { orientation: "h", y: -0.2 },
+    legend: { orientation: "h", y: -0.2, x: 0.5, xanchor: "center" },
     margin: { l: 70, r: 30, t: 30, b: 80 },
     hovermode: "x unified",
-    shapes: [
-      {
-        type: 'line', x0: forecast[0].ds, x1: forecast[forecast.length-1].ds,
-        y0: sc.reorder_point || 0, y1: sc.reorder_point || 0,
-        line: { color: REORDER_COLOR, width: 2, dash: 'dash' },
-        name: "Reorder Trigger"
-      }
-    ],
-    annotations: [
-      {
-        x: forecast[forecast.length-1].ds, y: sc.reorder_point || 0,
-        xref: 'x', yref: 'y', text: ' REORDER TRIGGER',
-        showarrow: false, xanchor: 'right', yanchor: 'bottom',
-        font: { color: REORDER_COLOR, size: 10 }
-      }
-    ]
+    shapes: [],
+    annotations: []
   };
+
+  // Add Operational Thresholds only if data exists
+  const rPoint = parseFloat(sc.reorder_point);
+  if (!isNaN(rPoint) && rPoint > 0) {
+    layout.shapes.push({
+      type: 'line', x0: forecast[0].ds, x1: forecast[forecast.length-1].ds,
+      y0: rPoint, y1: rPoint,
+      line: { color: REORDER_COLOR, width: 2, dash: 'dash' }
+    });
+    layout.annotations.push({
+      x: forecast[forecast.length-1].ds, y: rPoint,
+      xref: 'x', yref: 'y', text: ' REORDER TRIGGER',
+      showarrow: false, xanchor: 'right', yanchor: 'bottom',
+      font: { color: REORDER_COLOR, size: 10 }
+    });
+  }
 
   Plotly.react("spotlightChart", traces, layout, { responsive: true, displayModeBar: false });
 }
