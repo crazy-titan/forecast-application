@@ -495,6 +495,7 @@ function renderResults(data) {
   try { renderSCMetrics(data.supply_chain); } catch (e) { console.error("SC metrics error", e); }
   try { renderTheory(data.theory); } catch (e) { console.error("Theory error", e); }
   try { renderHistoryOnlyChart(data); } catch (e) { console.error("History-only chart error", e); }
+  try { renderSpotlightChart(data); } catch (e) { console.error("Spotlight chart error", e); }
   try { renderTrustScore(data); } catch (e) { console.error("Trust score error", e); }
   try { showDataReport(data); } catch (e) { console.error("Data report error", e); }
 }
@@ -1327,3 +1328,89 @@ window.addEventListener('resize', () => {
         }
     });
 });
+
+/* --- THE "SPOTLIGHT" FUTURE-ONLY CHART (3.4.14 Upgrade) --- */
+function renderSpotlightChart(data) {
+  const forecast = data.forecast || [];
+  const sc = data.supply_chain || {};
+  if (!forecast.length) return;
+
+  const paper = "rgba(0,0,0,0)";
+  const gridCol = "rgba(255,255,255,0.06)";
+  const textCol = "#a0aec0";
+  const FORECAST_COLOR = "#FFD600"; // Gold
+  const BAND_COLOR = "#9D4EDD";     // Purple
+  const REORDER_COLOR = "#FF9800";  // Orange
+
+  const seriesIds = [...new Set(forecast.map(r => r.unique_id || "Series_1"))];
+  const traces = [];
+
+  seriesIds.forEach(uid => {
+    const rows = forecast.filter(r => (r.unique_id || "Series_1") === uid);
+    const xs = rows.map(r => r.ds);
+    const cols = Object.keys(rows[0]).filter(k => !["unique_id", "ds"].includes(k));
+    const bestCol = cols.find(c => c === data.best_model) || cols.find(c => !c.includes("-")) || cols[0];
+    const lo95 = cols.find(c => c.includes("-lo-95"));
+    const hi95 = cols.find(c => c.includes("-hi-95"));
+    const lo80 = cols.find(c => c.includes("-lo-80"));
+    const hi80 = cols.find(c => c.includes("-hi-80"));
+
+    if (lo95 && hi95) {
+      traces.push({
+        x: [...xs, ...xs.slice().reverse()],
+        y: [...rows.map(r => r[hi95] ?? null), ...rows.map(r => r[lo95] ?? null).reverse()],
+        fill: "toself", fillcolor: "rgba(157, 78, 221, 0.08)",
+        line: { color: "transparent" }, name: `${uid} (95% Strategic Zone)`,
+        hoverinfo: "skip"
+      });
+    }
+    if (lo80 && hi80) {
+      traces.push({
+        x: [...xs, ...xs.slice().reverse()],
+        y: [...rows.map(r => r[hi80] ?? null), ...rows.map(r => r[lo80] ?? null).reverse()],
+        fill: "toself", fillcolor: "rgba(157, 78, 221, 0.25)",
+        line: { color: "transparent" }, name: `${uid} (80% Normal Operations)`,
+        hoverinfo: "skip"
+      });
+    }
+    if (bestCol) {
+      traces.push({
+        x: xs, y: rows.map(r => r[bestCol] ?? null),
+        name: `${uid} Expected Trend`, type: "scatter", mode: "lines+markers",
+        line: { color: FORECAST_COLOR, width: 3 },
+        marker: { size: 6, color: FORECAST_COLOR, symbol: "diamond" }
+      });
+    }
+  });
+
+  const layout = {
+    paper_bgcolor: paper, plot_bgcolor: paper,
+    font: { family: "Outfit, sans-serif", color: textCol },
+    xaxis: { 
+      gridcolor: gridCol, type: "date", tickformat: "%b %d, %Y",
+      title: "Strategy Horizon (Future Strategy)"
+    },
+    yaxis: { gridcolor: gridCol, title: "Predicted Units" },
+    legend: { orientation: "h", y: -0.2 },
+    margin: { l: 70, r: 30, t: 30, b: 80 },
+    hovermode: "x unified",
+    shapes: [
+      {
+        type: 'line', x0: forecast[0].ds, x1: forecast[forecast.length-1].ds,
+        y0: sc.reorder_point || 0, y1: sc.reorder_point || 0,
+        line: { color: REORDER_COLOR, width: 2, dash: 'dash' },
+        name: "Reorder Trigger"
+      }
+    ],
+    annotations: [
+      {
+        x: forecast[forecast.length-1].ds, y: sc.reorder_point || 0,
+        xref: 'x', yref: 'y', text: ' REORDER TRIGGER',
+        showarrow: false, xanchor: 'right', yanchor: 'bottom',
+        font: { color: REORDER_COLOR, size: 10 }
+      }
+    ]
+  };
+
+  Plotly.react("spotlightChart", traces, layout, { responsive: true, displayModeBar: false });
+}

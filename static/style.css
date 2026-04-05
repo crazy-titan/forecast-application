@@ -1418,3 +1418,34 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         gap: 1rem;
     }
 }
+
+/* --- Forecast Spotlight (3.4.14 Upgrade) --- */
+.spotlight-row {
+  width: 100%;
+  margin-top: 2rem;
+  margin-bottom: 3rem;
+  animation: slideUp 0.8s ease-out;
+}
+
+.spotlight-card {
+  border: 1px solid rgba(157, 78, 221, 0.2) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3) !important;
+}
+
+.spotlight-title {
+  color: #FFD600 !important;
+  font-size: 1.4rem !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.chart-spotlight {
+  height: 500px !important;
+}
+
+.chart-subtitle {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  margin-top: -10px;
+  margin-bottom: 20px;
+}
