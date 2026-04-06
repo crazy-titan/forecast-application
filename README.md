@@ -1,6 +1,6 @@
 ---
 title: ChainCast — Demand Forecasting Engine
-emoji: none
+emoji: 📈
 colorFrom: blue
 colorTo: purple
 sdk: docker
