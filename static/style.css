@@ -1492,14 +1492,31 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     font-weight: 700;
     color: #fff;
     font-variant-numeric: tabular-nums;
+    animation: insightScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+@keyframes insightScale {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Strategic Risk Status Colors */
 .risk-safe {
     border-left: 4px solid #00E676;
-    background: rgba(0, 230, 118, 0.03);
+    background: rgba(0, 230, 118, 0.05) !important;
 }
 
-.risk-alert {
+.risk-warning {
+    border-left: 4px solid #FFD600;
+    background: rgba(255, 214, 0, 0.05) !important;
+}
+
+.risk-danger {
+    border-left: 4px solid #FF1744;
+    background: rgba(255, 23, 68, 0.05) !important;
+}
+
+.risk-alert { /* Legacy support */
     border-left: 4px solid #FF1744;
     background: rgba(255, 23, 68, 0.03);
 }

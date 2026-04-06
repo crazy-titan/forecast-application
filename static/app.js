@@ -1408,14 +1408,37 @@ function renderSpotlightChart(data) {
     const lo80 = cols.find(c => c.includes("-lo-80"));
     const hi80 = cols.find(c => c.includes("-hi-80"));
 
+    // --- Dynamic Strategic Insights (3.4.23) ---
+    const allVals = rows.map(r => r[bestCol]);
+    const avgDemand = (allVals.reduce((a,b)=>a+b, 0) / allVals.length).toFixed(1);
+    const windowDays = rows.length;
+    
+    // Risk = Is upper confidence band ever above Reorder Point?
+    const riskHits = rows.filter(r => (r[hi80] || 0) > rPoint).length;
+    const riskPercent = ((riskHits / windowDays) * 100).toFixed(0);
+
+    // Update Dashboard Badges
+    const dBadge = document.getElementById("insightDemand");
+    const wBadge = document.getElementById("insightWindow");
+    const rBadge = document.getElementById("insightRisk");
+    const rPanel = document.getElementById("insightRiskBadge");
+
+    if (dBadge) dBadge.textContent = `${Number(avgDemand).toLocaleString()} units`;
+    if (wBadge) wBadge.textContent = `${windowDays} Periods`;
+    if (rBadge) rBadge.textContent = `${riskPercent}%`;
+    
+    if (rPanel) {
+        rPanel.className = 'insight-badge ' + (riskPercent > 20 ? 'risk-danger' : riskPercent > 0 ? 'risk-warning' : 'risk-safe');
+    }
+
     const xs = rows.map(r => r.ds);
 
     if (lo95 && hi95) {
       traces.push({
         x: [...xs, ...xs.slice().reverse()],
         y: [...rows.map(r => r[hi95] ?? null), ...rows.map(r => r[lo95] ?? null).reverse()],
-        fill: "toself", fillcolor: "rgba(157, 78, 221, 0.08)",
-        line: { color: "transparent" }, name: `Unlikely High/Low`,
+        fill: "toself", fillcolor: "rgba(157, 78, 221, 0.05)",
+        line: { color: "transparent" }, name: `Volatility Zone (95% CI)`,
         showlegend: true, hoverinfo: "skip"
       });
     }
@@ -1423,8 +1446,8 @@ function renderSpotlightChart(data) {
       traces.push({
         x: [...xs, ...xs.slice().reverse()],
         y: [...rows.map(r => r[hi80] ?? null), ...rows.map(r => r[lo80] ?? null).reverse()],
-        fill: "toself", fillcolor: "rgba(157, 78, 221, 0.25)",
-        line: { color: "transparent" }, name: `Expected Variability`,
+        fill: "toself", fillcolor: "rgba(157, 78, 221, 0.15)",
+        line: { color: "transparent" }, name: `Demand Risk Zone (80% CI)`,
         showlegend: true, hoverinfo: "skip"
       });
     }
@@ -1450,7 +1473,7 @@ function renderSpotlightChart(data) {
     font: { family: "Outfit, sans-serif", color: textCol },
     xaxis: { 
       gridcolor: gridCol, type: "date", tickformat: "%b %d, %Y",
-      title: "6-Month Tactical Horizon (Strategic Prediction)"
+      title: "Strategic Foresight Horizon"
     },
     yaxis: { 
         gridcolor: gridCol, title: "Predicted Units",
@@ -1486,25 +1509,57 @@ function renderSpotlightChart(data) {
     });
   }
 
-  // Tactical Annotations: Find Highest Peak & Lowest Dip
+  // 1. Projected Peak (Highest Point)
   const peakRow = mainRows.reduce((prev, current) => (prev[bestCol] > current[bestCol]) ? prev : current);
-  const dipRow = mainRows.reduce((prev, current) => (prev[bestCol] < current[bestCol]) ? prev : current);
-
   layout.annotations.push({
     x: peakRow.ds, y: peakRow[bestCol],
-    xref: 'x', yref: 'y', text: 'PROJECTED PEAK',
+    xref: 'x', yref: 'y', text: ' PROJECTED PEAK',
     showarrow: true, arrowhead: 2, ax: 0, ay: -30,
-    font: { color: FORECAST_COLOR, size: 10, weight: 'bold' },
-    bgcolor: 'rgba(0,0,0,0.5)', borderpad: 2
+    font: { color: '#FFD700', size: 11, weight: 'bold' },
+    bgcolor: 'rgba(0,0,0,0.7)', borderpad: 4, bordercolor: '#FFD700', borderwidth: 1
   });
 
-  if (riskPercent > 10) {
-    layout.annotations.push({
-      x: 0.5, y: 1.15, xref: 'paper', yref: 'paper',
-      text: `⚠️ CRITICAL: ${riskPercent}% PROBABILITY OF STOCKOUT DETECTED`,
-      showarrow: false, font: { color: '#FF1744', size: 14, weight: 'bold' },
-      bgcolor: 'rgba(255, 23, 68, 0.1)', bordercolor: '#FF1744', borderwidth: 1, borderpad: 6
-    });
+  // 2. Strategic Dip (Lowest Point)
+  const dipRow = mainRows.reduce((prev, current) => (prev[bestCol] < current[bestCol]) ? prev : current);
+  layout.annotations.push({
+    x: dipRow.ds, y: dipRow[bestCol],
+    xref: 'x', yref: 'y', text: ' STRATEGIC DIP',
+    showarrow: true, arrowhead: 2, ax: 0, ay: 30,
+    font: { color: '#00E5FF', size: 10, weight: 'bold' },
+    bgcolor: 'rgba(0,0,0,0.7)', borderpad: 4, bordercolor: '#00E5FF', borderwidth: 1
+  });
+
+  // 3. Safety Buffer (Gap to Reorder Point)
+  if (showRPoint) {
+      const avgGap = (rPoint - peakRow[bestCol]).toFixed(0);
+      layout.annotations.push({
+        x: filteredForecast[Math.floor(filteredForecast.length/2)].ds, 
+        y: (peakRow[bestCol] + rPoint) / 2,
+        xref: 'x', yref: 'y', text: `SAFETY BUFFER: ~${avgGap} UNITS`,
+        showarrow: false, font: { color: 'rgba(255,255,255,0.6)', size: 9, style: 'italic' }
+      });
+  }
+
+  // 4. Zone Labels (Directly on bands)
+  const hi95Key = cols.find(c=>c.includes("-hi-95"));
+  const hi80Key = cols.find(c=>c.includes("-hi-80"));
+
+  if (hi95Key) {
+      layout.annotations.push({
+        x: filteredForecast[0].ds, y: filteredForecast[0][hi95Key],
+        xref: 'x', yref: 'y', text: 'VOLATILITY ZONE (95%)',
+        showarrow: false, xanchor: 'left', yanchor: 'bottom',
+        font: { color: 'rgba(157, 78, 221, 0.5)', size: 8 }
+      });
+  }
+
+  if (hi80Key) {
+      layout.annotations.push({
+        x: filteredForecast[0].ds, y: filteredForecast[0][hi80Key],
+        xref: 'x', yref: 'y', text: 'DEMAND RISK ZONE (80%)',
+        showarrow: false, xanchor: 'left', yanchor: 'bottom',
+        font: { color: 'rgba(157, 78, 221, 0.8)', size: 8 }
+      });
   }
 
   Plotly.react("spotlightChart", traces, layout, { responsive: true, displayModeBar: false });
