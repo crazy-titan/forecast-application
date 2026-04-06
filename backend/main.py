@@ -72,23 +72,44 @@ def get_theory(results, validation):
     return {"steps": steps}
     
 def get_narrative(results, validation, sc_metrics):
-    """Translates raw stats into a 3-bullet presentation narrative."""
+    """Translates raw stats and data quality into a 3-bullet presentation narrative."""
     summary = results.get("dashboard_summary", "Stable")
     info = validation.get("info", {})
-    
-    # 1. Behavior Narrative
+    history = results.get("history", {})
+
+    # 1. Behavior & Data Personality (3.4.17 Restore)
+    cv_val = 0.0
+    personality_msg = "Stable patterns detected."
+
+    if history:
+        all_y = []
+        for uid in history:
+            all_y.extend([p['y'] for p in history[uid] if p.get('y') is not None])
+        if all_y:
+            y_arr = np.array(all_y)
+            mean_y = np.mean(y_arr)
+            if mean_y > 0:
+                cv_val = np.std(y_arr) / mean_y
+
+    if cv_val < 0.20:
+        personality_msg = "INDUSTRIAL STABLE: High-quality, repeatable rhythms. AI trust is maximum."
+    elif cv_val < 0.50:
+        personality_msg = "TACTICAL VOLATILE: Moderate unpredictable spikes. AI requires larger buffers."
+    else:
+        personality_msg = "SENSITIVE/ERRATIC: Highly irregular data. Treat AI as a strategic guide, not a strict rule."
+
     trend_map = {
         "Upward": "Steady growth with positive momentum.",
         "Downward": "Declining demand; suggests a strategic scale-back.",
         "Stable": "Solid, consistent baseline with minimal drift."
     }
-    behavior = f"{trend_map.get(summary, 'Stable')} Detects a {info.get('season_length',7)}-step seasonal heartbeat."
+    behavior = f"{trend_map.get(summary, 'Stable')} {personality_msg}"
 
     # 2. Risk Narrative (based on safety stock vs forecast)
     f_total = sum(sc_metrics.get("forecast_period_total", [1])) or 1
     ss_val = sc_metrics.get("safety_stock", 0)
     risk_ratio = ss_val / f_total
-    
+
     if risk_ratio > 0.4:
         risk = "HIGH VOLATILITY: This dataset is 'noisy' and unpredictable. Requires larger safety buffers."
     elif risk_ratio > 0.15:
@@ -105,9 +126,9 @@ def get_narrative(results, validation, sc_metrics):
         advice = "STRATEGY: Maintain existing baseline. Focus on lead-time efficiency rather than volume changes."
 
     return {
-        "behavior": f"{behavior} (See the **Cyan** peaks in the history chart).",
-        "risk": f"{risk} (Note the width of the **Purple** shaded forecast bands).",
-        "advice": f"{advice} (Compare with the **Orange** trend line in the history profile)."
+        "behavior": f"{behavior} (Detected {info.get('season_length',7)}-step seasonal rhythm).",
+        "risk": f"{risk} (Note the width of the **Purple** strategic zones).",
+        "advice": f"{advice} (See the **Gold** trend in the spotlight section)."
     }
 
 # --- JSON scrubber for NaN/Inf/Timestamp ---
@@ -466,7 +487,7 @@ def forecast(
             "best_model": MODEL_LABELS.get(raw_best, raw_best),
             "model_scores": labeled_scores,
             "history": results.get("history",{}),
-            "forecast": results.get("prob_preds").fillna(0).to_dict(orient="records") if results.get("prob_preds") is not None else [],
+            "forecast": results.get("future_preds").fillna(0).to_dict(orient="records") if results.get("future_preds") is not None else [],
             "cv_results": results.get("eval_agg",pd.DataFrame()).to_dict(orient="records") if results.get("eval_agg") is not None else [],
             "residuals": results.get("residuals"),
             "ljung_box": results.get("ljung_box"),

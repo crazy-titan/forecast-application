@@ -1342,15 +1342,36 @@ function renderSpotlightChart(data) {
   const BAND_COLOR = "#9D4EDD";     // Purple
   const REORDER_COLOR = "#FF9800";  // Orange
 
-  const seriesIds = [...new Set(forecast.map(r => r.unique_id || "Series_1"))];
+  // Strategy Zoom & Date Shield (3.4.18 Upgrade)
+  // Find the last date in history to ensure the Spotlight is strictly Future-Only
+  let historyDates = [];
+  if (data.history) {
+    Object.values(data.history).forEach(series => {
+      historyDates.push(...series.map(h => new Date(h.ds).getTime()));
+    });
+  }
+  const lastHistoryTime = historyDates.length ? Math.max(...historyDates) : 0;
+
+  // Filter out any "In-Sample" (past) forecast points
+  const trueFutureForecast = forecast.filter(r => new Date(r.ds).getTime() > lastHistoryTime);
+  if (!trueFutureForecast.length) return;
+
+  const firstDate = new Date(trueFutureForecast[0].ds);
+  const sixMonthsOut = new Date(firstDate);
+  sixMonthsOut.setDate(sixMonthsOut.getDate() + 180);
+
+  const filteredForecast = trueFutureForecast.filter(r => new Date(r.ds) <= sixMonthsOut);
+  if (!filteredForecast.length) return;
+
+  const seriesIds = [...new Set(filteredForecast.map(r => r.unique_id || "Series_1"))];
   const traces = [];
+  let isStockoutRisk = false;
 
   seriesIds.forEach(uid => {
-    const rows = forecast.filter(r => (r.unique_id || "Series_1") === uid);
+    const rows = filteredForecast.filter(r => (r.unique_id || "Series_1") === uid);
     if (!rows.length) return;
 
     const cols = Object.keys(rows[0]).filter(k => !["unique_id", "ds"].includes(k));
-    // Robust Column Detection Logic
     const bestCol = cols.find(c => c === data.best_model) || 
                     cols.find(c => !c.includes("-lo") && !c.includes("-hi")) || 
                     cols[0];
@@ -1361,6 +1382,14 @@ function renderSpotlightChart(data) {
     const hi80 = cols.find(c => c.includes("-hi-80"));
 
     const xs = rows.map(r => r.ds);
+
+    // Collision Detection: Check if 95% band drops below ROP
+    const rPoint = parseFloat(sc.reorder_point) || 0;
+    if (lo95) {
+      if (rows.some(r => r[lo95] < rPoint)) {
+        isStockoutRisk = true;
+      }
+    }
 
     if (lo95 && hi95) {
       traces.push({
@@ -1395,11 +1424,11 @@ function renderSpotlightChart(data) {
     font: { family: "Outfit, sans-serif", color: textCol },
     xaxis: { 
       gridcolor: gridCol, type: "date", tickformat: "%b %d, %Y",
-      title: "Strategy Horizon (Future Strategy Prediction)"
+      title: "6-Month Tactical Horizon (Strategic Prediction)"
     },
     yaxis: { gridcolor: gridCol, title: "Predicted Units" },
     legend: { orientation: "h", y: -0.2, x: 0.5, xanchor: "center" },
-    margin: { l: 70, r: 30, t: 30, b: 80 },
+    margin: { l: 70, r: 30, t: 50, b: 80 },
     hovermode: "x unified",
     shapes: [],
     annotations: []
@@ -1409,15 +1438,25 @@ function renderSpotlightChart(data) {
   const rPoint = parseFloat(sc.reorder_point);
   if (!isNaN(rPoint) && rPoint > 0) {
     layout.shapes.push({
-      type: 'line', x0: forecast[0].ds, x1: forecast[forecast.length-1].ds,
+      type: 'line', x0: filteredForecast[0].ds, x1: filteredForecast[filteredForecast.length-1].ds,
       y0: rPoint, y1: rPoint,
       line: { color: REORDER_COLOR, width: 2, dash: 'dash' }
     });
     layout.annotations.push({
-      x: forecast[forecast.length-1].ds, y: rPoint,
+      x: filteredForecast[filteredForecast.length-1].ds, y: rPoint,
       xref: 'x', yref: 'y', text: ' REORDER TRIGGER',
       showarrow: false, xanchor: 'right', yanchor: 'bottom',
       font: { color: REORDER_COLOR, size: 10 }
+    });
+  }
+
+  // Inject High-Impact Stockout Alert if triggered
+  if (isStockoutRisk) {
+    layout.annotations.push({
+      x: 0.5, y: 1.1, xref: 'paper', yref: 'paper',
+      text: '⚠️ CRITICAL STOCKOUT RISK DETECTED IN THIS WINDOW',
+      showarrow: false, font: { color: '#FF1744', size: 14, weight: 'bold' },
+      bgcolor: 'rgba(255, 23, 68, 0.1)', bordercolor: '#FF1744', borderwidth: 1, borderpad: 6
     });
   }
 

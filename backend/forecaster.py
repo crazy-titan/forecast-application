@@ -115,21 +115,31 @@ def run_pipeline(
         print("[ENGINE-LOG] Model mode: Manual configuration.")
         all_models = baseline + [AutoETS(season_length=season_length)]
 
-    # ── 3. FIT & PREDICT ──────────────────────────────────────────────────
+    # ── 3. FIT & PREDICT (Validation Stage) ──────────────────────────────
     try:
-        print("[ENGINE-LOG] Fitting statistical engine models...")
+        print("[ENGINE-LOG] Fitting statistical engine models (Validation)...")
         sf_core = StatsForecast(models=all_models, freq=freq, n_jobs=N_JOBS)
         sf_core.fit(train)
-        print("[ENGINE-LOG] Generating future horizons (Probabilistic Mode)...")
-        # Optimization: Single call for both point and confidence intervals
+        print("[ENGINE-LOG] Generating Validation Predictions (Probabilistic Mode)...")
         prob_preds = sf_core.predict(h=horizon, level=[80, 95])
-        point_preds = prob_preds # point_preds is used for metrics/scoring
+        point_preds = prob_preds # used for metrics/scoring
     except Exception as e:
-        print(f"[ENGINE-LOG] fit process error: {str(e)[:120]}. Falling back.")
+        print(f"[ENGINE-LOG] Validation fit error: {str(e)[:120]}. Falling back.")
         sf_core = StatsForecast(models=baseline, freq=freq, n_jobs=N_JOBS)
         sf_core.fit(train)
         prob_preds = sf_core.predict(h=horizon)
         point_preds = prob_preds
+
+    # ── 3.1 PRODUCTION REFIT (Final Future Generation) ────────────────────
+    print("[ENGINE-LOG] Performing Production Refit on FULL dataset for strategic future...")
+    try:
+        sf_prod = StatsForecast(models=all_models, freq=freq, n_jobs=N_JOBS)
+        sf_prod.fit(df_sf) # Training on 100% of the history
+        future_preds = sf_prod.predict(h=horizon, level=[80, 95])
+        results["future_preds"] = future_preds
+    except Exception as e:
+        print(f"[ENGINE-LOG] Production refit error: {str(e)[:120]}.")
+        results["future_preds"] = prob_preds # fallback to validation prediction if fails
 
     results["point_preds"] = point_preds
     results["prob_preds"] = prob_preds
