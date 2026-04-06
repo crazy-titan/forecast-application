@@ -1449,3 +1449,57 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   margin-top: -10px;
   margin-bottom: 20px;
 }
+
+/* Strategy Insights Upgrade (3.4.19) */
+.strategy-insights-row {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding-bottom: 1.5rem;
+}
+
+.insight-badge {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    min-width: 140px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.insight-badge:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.insight-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #a0aec0;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+}
+
+.insight-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+}
+
+.risk-safe {
+    border-left: 4px solid #00E676;
+    background: rgba(0, 230, 118, 0.03);
+}
+
+.risk-alert {
+    border-left: 4px solid #FF1744;
+    background: rgba(255, 23, 68, 0.03);
+}

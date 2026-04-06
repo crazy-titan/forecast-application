@@ -1343,7 +1343,6 @@ function renderSpotlightChart(data) {
   const REORDER_COLOR = "#FF9800";  // Orange
 
   // Strategy Zoom & Date Shield (3.4.18 Upgrade)
-  // Find the last date in history to ensure the Spotlight is strictly Future-Only
   let historyDates = [];
   if (data.history) {
     Object.values(data.history).forEach(series => {
@@ -1352,7 +1351,6 @@ function renderSpotlightChart(data) {
   }
   const lastHistoryTime = historyDates.length ? Math.max(...historyDates) : 0;
 
-  // Filter out any "In-Sample" (past) forecast points
   const trueFutureForecast = forecast.filter(r => new Date(r.ds).getTime() > lastHistoryTime);
   if (!trueFutureForecast.length) return;
 
@@ -1363,7 +1361,41 @@ function renderSpotlightChart(data) {
   const filteredForecast = trueFutureForecast.filter(r => new Date(r.ds) <= sixMonthsOut);
   if (!filteredForecast.length) return;
 
+  // --- Insight Calculation (3.4.19 Upgrade) ---
   const seriesIds = [...new Set(filteredForecast.map(r => r.unique_id || "Series_1"))];
+  const firstUid = seriesIds[0];
+  const mainRows = filteredForecast.filter(r => (r.unique_id || "Series_1") === firstUid);
+  
+  const cols = Object.keys(mainRows[0]).filter(k => !["unique_id", "ds"].includes(k));
+  const bestCol = cols.find(c => c === data.best_model) || 
+                  cols.find(c => !c.includes("-lo") && !c.includes("-hi")) || 
+                  cols[0];
+  
+  const avgDemand = mainRows.reduce((a, b) => a + (b[bestCol] || 0), 0) / mainRows.length;
+  const maxForecast = Math.max(...mainRows.map(r => r[bestCol] || 0));
+  
+  const lo95Col = cols.find(c => c.includes("-lo-95"));
+  const rPoint = parseFloat(sc.reorder_point) || 0;
+  let riskCount = 0;
+  if (lo95Col) {
+    riskCount = mainRows.filter(r => (r[lo95Col] || 0) < rPoint).length;
+  }
+  const riskPercent = ((riskCount / mainRows.length) * 100).toFixed(0);
+
+  // Update Insight Badges
+  document.getElementById("insightDemand").textContent = Math.round(avgDemand);
+  document.getElementById("insightWindow").textContent = "180 DAYS";
+  const riskTxt = document.getElementById("insightRisk");
+  const riskBadge = document.getElementById("insightRiskBadge");
+  riskTxt.textContent = riskPercent + "%";
+  
+  if (riskPercent > 10) {
+    riskBadge.classList.replace("risk-safe", "risk-alert");
+  } else {
+    riskBadge.classList.replace("risk-alert", "risk-safe");
+  }
+
+  // --- Chart Building ---
   const traces = [];
   let isStockoutRisk = false;
 
@@ -1371,11 +1403,6 @@ function renderSpotlightChart(data) {
     const rows = filteredForecast.filter(r => (r.unique_id || "Series_1") === uid);
     if (!rows.length) return;
 
-    const cols = Object.keys(rows[0]).filter(k => !["unique_id", "ds"].includes(k));
-    const bestCol = cols.find(c => c === data.best_model) || 
-                    cols.find(c => !c.includes("-lo") && !c.includes("-hi")) || 
-                    cols[0];
-    
     const lo95 = cols.find(c => c.includes("-lo-95"));
     const hi95 = cols.find(c => c.includes("-hi-95"));
     const lo80 = cols.find(c => c.includes("-lo-80"));
@@ -1383,21 +1410,13 @@ function renderSpotlightChart(data) {
 
     const xs = rows.map(r => r.ds);
 
-    // Collision Detection: Check if 95% band drops below ROP
-    const rPoint = parseFloat(sc.reorder_point) || 0;
-    if (lo95) {
-      if (rows.some(r => r[lo95] < rPoint)) {
-        isStockoutRisk = true;
-      }
-    }
-
     if (lo95 && hi95) {
       traces.push({
         x: [...xs, ...xs.slice().reverse()],
         y: [...rows.map(r => r[hi95] ?? null), ...rows.map(r => r[lo95] ?? null).reverse()],
         fill: "toself", fillcolor: "rgba(157, 78, 221, 0.08)",
-        line: { color: "transparent" }, name: `${uid} (95% Strategic Zone)`,
-        showlegend: false, hoverinfo: "skip"
+        line: { color: "transparent" }, name: `Unlikely High/Low`,
+        showlegend: true, hoverinfo: "skip"
       });
     }
     if (lo80 && hi80) {
@@ -1405,19 +1424,26 @@ function renderSpotlightChart(data) {
         x: [...xs, ...xs.slice().reverse()],
         y: [...rows.map(r => r[hi80] ?? null), ...rows.map(r => r[lo80] ?? null).reverse()],
         fill: "toself", fillcolor: "rgba(157, 78, 221, 0.25)",
-        line: { color: "transparent" }, name: `${uid} (80% Normal Operations)`,
-        showlegend: false, hoverinfo: "skip"
+        line: { color: "transparent" }, name: `Expected Variability`,
+        showlegend: true, hoverinfo: "skip"
       });
     }
     if (bestCol) {
       traces.push({
         x: xs, y: rows.map(r => r[bestCol] ?? null),
-        name: `${uid} Strategy Trend`, type: "scatter", mode: "lines+markers",
+        name: `Strategy Trend`, type: "scatter", mode: "lines+markers",
         line: { color: FORECAST_COLOR, width: 3 },
         marker: { size: 6, color: FORECAST_COLOR, symbol: "diamond" }
       });
     }
   });
+
+  // --- Adaptive Scaling Logic (3.4.19) ---
+  let yMaxFocus = maxForecast * 1.5;
+  const showRPoint = rPoint > 0 && rPoint < (maxForecast * 2.5);
+  if (showRPoint) {
+    yMaxFocus = Math.max(yMaxFocus, rPoint * 1.1);
+  }
 
   const layout = {
     paper_bgcolor: paper, plot_bgcolor: paper,
@@ -1426,7 +1452,10 @@ function renderSpotlightChart(data) {
       gridcolor: gridCol, type: "date", tickformat: "%b %d, %Y",
       title: "6-Month Tactical Horizon (Strategic Prediction)"
     },
-    yaxis: { gridcolor: gridCol, title: "Predicted Units" },
+    yaxis: { 
+        gridcolor: gridCol, title: "Predicted Units",
+        range: [0, yMaxFocus]
+    },
     legend: { orientation: "h", y: -0.2, x: 0.5, xanchor: "center" },
     margin: { l: 70, r: 30, t: 50, b: 80 },
     hovermode: "x unified",
@@ -1434,9 +1463,8 @@ function renderSpotlightChart(data) {
     annotations: []
   };
 
-  // Add Operational Thresholds only if data exists
-  const rPoint = parseFloat(sc.reorder_point);
-  if (!isNaN(rPoint) && rPoint > 0) {
+  // Add Operational Thresholds only if visible
+  if (showRPoint) {
     layout.shapes.push({
       type: 'line', x0: filteredForecast[0].ds, x1: filteredForecast[filteredForecast.length-1].ds,
       y0: rPoint, y1: rPoint,
@@ -1448,13 +1476,32 @@ function renderSpotlightChart(data) {
       showarrow: false, xanchor: 'right', yanchor: 'bottom',
       font: { color: REORDER_COLOR, size: 10 }
     });
+  } else if (rPoint > 0) {
+    // If off-chart, add a corner notice
+    layout.annotations.push({
+      x: 1, y: 1, xref: 'paper', yref: 'paper',
+      text: `Inventory Safe: Reorder Point (${rPoint}) is well above current demand.`,
+      showarrow: false, xanchor: 'right', yanchor: 'top',
+      font: { color: '#00E676', size: 11, weight: 'bold' }
+    });
   }
 
-  // Inject High-Impact Stockout Alert if triggered
-  if (isStockoutRisk) {
+  // Tactical Annotations: Find Highest Peak & Lowest Dip
+  const peakRow = mainRows.reduce((prev, current) => (prev[bestCol] > current[bestCol]) ? prev : current);
+  const dipRow = mainRows.reduce((prev, current) => (prev[bestCol] < current[bestCol]) ? prev : current);
+
+  layout.annotations.push({
+    x: peakRow.ds, y: peakRow[bestCol],
+    xref: 'x', yref: 'y', text: 'PROJECTED PEAK',
+    showarrow: true, arrowhead: 2, ax: 0, ay: -30,
+    font: { color: FORECAST_COLOR, size: 10, weight: 'bold' },
+    bgcolor: 'rgba(0,0,0,0.5)', borderpad: 2
+  });
+
+  if (riskPercent > 10) {
     layout.annotations.push({
-      x: 0.5, y: 1.1, xref: 'paper', yref: 'paper',
-      text: '⚠️ CRITICAL STOCKOUT RISK DETECTED IN THIS WINDOW',
+      x: 0.5, y: 1.15, xref: 'paper', yref: 'paper',
+      text: `⚠️ CRITICAL: ${riskPercent}% PROBABILITY OF STOCKOUT DETECTED`,
       showarrow: false, font: { color: '#FF1744', size: 14, weight: 'bold' },
       bgcolor: 'rgba(255, 23, 68, 0.1)', bordercolor: '#FF1744', borderwidth: 1, borderpad: 6
     });

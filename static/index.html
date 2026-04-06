@@ -517,6 +517,22 @@
                 <div class="chart-card spotlight-card glass-panel">
                     <div class="chart-title spotlight-title">Forecast Spotlight: Future Demand Trend</div>
                     <p class="chart-subtitle">An isolated, high-zoom view of the predicted trend and safety zones.</p>
+                    
+                    <div class="strategy-insights-row" id="spotlightInsights">
+                        <div class="insight-badge">
+                            <span class="insight-label">EXPECTED DEMAND</span>
+                            <span class="insight-value" id="insightDemand">--</span>
+                        </div>
+                        <div class="insight-badge">
+                            <span class="insight-label">TACTICAL WINDOW</span>
+                            <span class="insight-value" id="insightWindow">--</span>
+                        </div>
+                        <div class="insight-badge risk-safe" id="insightRiskBadge">
+                            <span class="insight-label" style="color: inherit">STOCKOUT RISK</span>
+                            <span class="insight-value" id="insightRisk">--</span>
+                        </div>
+                    </div>
+
                     <div id="spotlightChart" class="chart-container chart-spotlight"></div>
                 </div>
             </div>
