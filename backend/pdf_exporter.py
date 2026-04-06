@@ -95,19 +95,24 @@ class ForecastPDF(FPDF):
         if example: text_content += f"\n\nEXAMPLE: {example}"
         
         # Determine height (approximate)
-        lines = self.multi_cell(185, 5, clean_text(text_content), border=0, align='L', dry_run=True, output="LINES")
-        h = (len(lines) * 5) + 6
+        # Use a slightly wider margin for line counting to be safe
+        lines = self.multi_cell(180, 5, clean_text(text_content), border=0, align='L', dry_run=True, output="LINES")
+        # Add extra height for the title header (8mm) and bottom padding (4mm)
+        h = (len(lines) * 5) + 12
         
         # Draw background and title
         self.rect(10, curr_y, 190, h, style='FD')
-        self.set_xy(15, curr_y + 3)
+        self.set_xy(15, curr_y + 4)
         self.set_font("helvetica", "B", 10)
-        self.cell(190, 5, f"{clean_text(title)} (Analysis Insight)", new_x="LMARGIN", new_y="NEXT")
+        self.cell(180, 6, f"{clean_text(title)} (Analysis Insight)", new_x="LMARGIN", new_y="NEXT")
+        
+        # Crucial Spacer to prevent overlap
+        self.ln(1)
         
         self.set_font("helvetica", "", 9)
         self.set_text_color(40, 40, 40)
         self.set_x(15)
-        self.multi_cell(180, 5, clean_text(body))
+        self.multi_cell(180, 5, clean_text(body), new_x="LMARGIN", new_y="NEXT")
         
         if example:
             self.ln(1)
