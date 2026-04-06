@@ -1460,22 +1460,57 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     padding-bottom: 1.5rem;
 }
 
+.strategy-insights-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
 .insight-badge {
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 1rem 1.5rem;
+    border-radius: 14px;
+    padding: 1.25rem;
     display: flex;
     flex-direction: column;
-    min-width: 140px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 220px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.insight-badge::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 4px; height: 100%;
+    background: var(--primary);
+    opacity: 0.6;
 }
 
 .insight-badge:hover {
     background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.15);
-    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+
+.insight-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.insight-icon {
+    width: 18px;
+    height: 18px;
+    fill: var(--text-dim);
+    opacity: 0.8;
 }
 
 .insight-label {
