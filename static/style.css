@@ -1419,6 +1419,66 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     }
 }
 
+/* Strategic Highlights for Narrative (3.7.0) */
+.hl-red { color: #FF1744; font-weight: 700; text-shadow: 0 0 8px rgba(255, 23, 68, 0.3); }
+.hl-green { color: #00E676; font-weight: 700; text-shadow: 0 0 8px rgba(0, 230, 118, 0.3); }
+.hl-gold { color: #FFD600; font-weight: 700; text-shadow: 0 0 8px rgba(255, 214, 0, 0.3); }
+.hl-purple { color: #9D4EDD; font-weight: 700; text-shadow: 0 0 8px rgba(157, 78, 221, 0.3); }
+.hl-cyan { color: #00E5FF; font-weight: 700; text-shadow: 0 0 8px rgba(0, 229, 255, 0.3); }
+.hl-orange { color: #FF9800; font-weight: 700; text-shadow: 0 0 8px rgba(255, 152, 0, 0.3); }
+
+/* Results Actions Distributed Layout */
+.results-actions {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: rgba(255,255,255,0.03);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.results-actions button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    background: transparent;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    min-width: 140px;
+}
+
+.results-actions button:hover {
+    background: rgba(255,255,255,0.05);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+}
+
+.btn-icon {
+    width: 28px;
+    height: 28px;
+    fill: currentColor;
+    opacity: 0.9;
+    filter: drop-shadow(0 0 8px rgba(255,255,255,0.1));
+}
+
+.results-actions button span {
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+.results-actions button:hover span {
+    color: #fff;
+}
+
 /* --- Forecast Spotlight (3.4.14 Upgrade) --- */
 .spotlight-row {
   width: 100%;

@@ -452,12 +452,22 @@ function renderResults(data) {
   if (data.narrative) {
     const boldify = (txt) => {
       if (!txt) return "—";
-      // First, handle the generic bolding
       let html = txt.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-      // Then, inject the color-sync spans
-      html = html.replace(/<strong>Cyan<\/strong>/g, '<span class="text-cyan">Cyan</span>');
-      html = html.replace(/<strong>Purple<\/strong>/g, '<span class="text-purple">Purple</span>');
-      html = html.replace(/<strong>Orange<\/strong>/g, '<span class="text-orange">Orange</span>');
+      
+      // Color-sync triggers (Strategic Highlights)
+      html = html.replace(/<strong>Cyan<\/strong>/g, '<span class="hl-cyan">Cyan</span>');
+      html = html.replace(/<strong>Purple<\/strong>/g, '<span class="hl-purple">Purple</span>');
+      html = html.replace(/<strong>Gold<\/strong>/g, '<span class="hl-gold">Gold</span>');
+      html = html.replace(/<strong>Orange<\/strong>/g, '<span class="hl-orange">Orange</span>');
+      
+      // Industrial Status Highlights (Red/Green)
+      html = html.replace(/SENSITIVE\/ERRATIC/g, '<span class="hl-red">SENSITIVE/ERRATIC</span>');
+      html = html.replace(/HIGH VOLATILITY/g, '<span class="hl-red">HIGH VOLATILITY</span>');
+      html = html.replace(/LOW ACCURACY/g, '<span class="hl-red">LOW ACCURACY</span>');
+      html = html.replace(/INDUSTRIAL STABLE/g, '<span class="hl-green">INDUSTRIAL STABLE</span>');
+      html = html.replace(/EXCELLENT/g, '<span class="hl-green">EXCELLENT</span>');
+      html = html.replace(/TACTICAL VOLATILE/g, '<span class="hl-orange">TACTICAL VOLATILE</span>');
+      
       return html;
     };
     if (nBehavior) nBehavior.innerHTML = boldify(data.narrative.behavior);
