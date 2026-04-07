@@ -1558,5 +1558,38 @@ function renderSpotlightChart(data) {
       });
   }
 
-  Plotly.react("spotlightChart", traces, layout, { responsive: true, displayModeBar: false });
+  // --- Spotlight Chart Refit (3.5.2) ---
+  // Create an isolated, future-only trace for the high-zoom spotlight
+  const spotlightTraces = [];
+  const sRows = filteredForecast; // Future only
+  const sXs = sRows.map(r=>r.ds);
+
+  if (lo95 && hi95) {
+    spotlightTraces.push({
+      x: [...sXs, ...sXs.slice().reverse()],
+      y: [...sRows.map(r => r[hi95] ?? null), ...sRows.map(r => r[lo95] ?? null).reverse()],
+      fill: "toself", fillcolor: "rgba(157, 78, 221, 0.1)",
+      line: { color: "transparent" }, name: `Volatility`, showlegend: false, hoverinfo: "skip"
+    });
+  }
+  
+  spotlightTraces.push({
+    x: sXs, y: sRows.map(r => r[bestCol] ?? null),
+    name: `Strategic Future`, type: "scatter", mode: "lines+markers",
+    line: { color: FORECAST_COLOR, width: 4 },
+    marker: { size: 8, color: "white", line: {color: FORECAST_COLOR, width: 2} }
+  });
+
+  const spotlightLayout = JSON.parse(JSON.stringify(layout));
+  spotlightLayout.xaxis.title = "Future Strategic Window";
+  spotlightLayout.yaxis.title = ""; 
+  spotlightLayout.showlegend = false;
+  spotlightLayout.margin = { l: 40, r: 20, t: 40, b: 40 };
+  // Tighten range for high-zoom effect
+  const sVals = sRows.map(r=>r[bestCol]);
+  const sMin = Math.min(...sVals) * 0.8;
+  const sMax = Math.max(...sVals) * 1.2;
+  spotlightLayout.yaxis.range = [sMin, sMax];
+
+  Plotly.react("spotlightChart", spotlightTraces, spotlightLayout, { responsive: true, displayModeBar: false });
 }
