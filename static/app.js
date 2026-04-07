@@ -1382,17 +1382,18 @@ function renderSpotlightChart(data) {
   }
   const riskPercent = ((riskCount / mainRows.length) * 100).toFixed(0);
 
-  // Update Insight Badges
-  document.getElementById("insightDemand").textContent = Math.round(avgDemand);
-  document.getElementById("insightWindow").textContent = "180 DAYS";
-  const riskTxt = document.getElementById("insightRisk");
-  const riskBadge = document.getElementById("insightRiskBadge");
-  riskTxt.textContent = riskPercent + "%";
+  // Update Insight Badges (Primary Sync)
+  const dBadgeTop = document.getElementById("insightDemand");
+  const wBadgeTop = document.getElementById("insightWindow");
+  const rBadgeTop = document.getElementById("insightRisk");
+  const rPanelTop = document.getElementById("insightRiskBadge");
+
+  if (dBadgeTop) dBadgeTop.textContent = Math.round(avgDemand).toLocaleString();
+  if (wBadgeTop) wBadgeTop.textContent = mainRows.length + " Periods";
+  if (rBadgeTop) rBadgeTop.textContent = riskPercent + "%";
   
-  if (riskPercent > 10) {
-    riskBadge.classList.replace("risk-safe", "risk-alert");
-  } else {
-    riskBadge.classList.replace("risk-alert", "risk-safe");
+  if (rPanelTop) {
+    rPanelTop.className = 'insight-badge ' + (riskPercent > 20 ? 'risk-danger' : riskPercent > 0 ? 'risk-warning' : 'risk-safe');
   }
 
   // --- Chart Building ---
@@ -1417,13 +1418,8 @@ function renderSpotlightChart(data) {
     const riskHits = rows.filter(r => (r[hi80] || 0) > rPoint).length;
     const riskPercent = ((riskHits / windowDays) * 100).toFixed(0);
 
-    // Update Dashboard Badges
-    const dBadge = document.getElementById("insightDemand");
-    const wBadge = document.getElementById("insightWindow");
-    const rBadge = document.getElementById("insightRisk");
-    const rPanel = document.getElementById("insightRiskBadge");
-
-    if (dBadge) dBadge.textContent = `${Number(avgDemand).toLocaleString()} units`;
+    // Update Dashboard Badges (Spotlight Individual Sync)
+    if (dBadge) dBadge.textContent = `${Number(avgDemand).toLocaleString()}`;
     if (wBadge) wBadge.textContent = `${windowDays} Periods`;
     if (rBadge) rBadge.textContent = `${riskPercent}%`;
     
