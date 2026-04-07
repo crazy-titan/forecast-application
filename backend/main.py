@@ -218,6 +218,12 @@ def list_datasets():
             "description": "5 full years of high-quality electricity demand data. Perfect for 'Turbo' testing."
         },
         {
+            "name": "India Power Demand (Daily)", 
+            "id": "elec_india",
+            "freq": "D", "horizon": 30, "season_length": 30,
+            "description": "High-fidelity industrial electricity demand from India. Test the seasonality engine."
+        },
+        {
             "name": "Crude Oil Price Index", 
             "id": "crude_oil",
             "freq": "D", "horizon": 14, "season_length": 5,
@@ -234,6 +240,18 @@ def list_datasets():
             "id": "walmart",
             "freq": "W", "horizon": 12, "season_length": 52,
             "description": "Condensed Walmart sales history for weekly seasonality analysis."
+        },
+        {
+            "name": "Retail Store Inventory", 
+            "id": "inventory",
+            "freq": "D", "horizon": 14, "season_length": 7,
+            "description": "Inventory stock-level data. Test 'Reorder Point' triggering logic."
+        },
+        {
+            "name": "Sales History (Historical)", 
+            "id": "sales",
+            "freq": "D", "horizon": 30, "season_length": 30,
+            "description": "A comprehensive historical sales dataset for long-term trend mapping."
         }
     ]}
 
@@ -242,9 +260,12 @@ def get_sample_dataset(dataset_id: str, session_id: str = Query(...)):
     # Map ID to filename
     mapping = {
         "electricity_5y": "electricity_5y.csv",
+        "elec_india": "India_Elec_data_(Jan2020-Mar2025).csv",
         "crude_oil": "crude-oil-price.csv",
         "ecommerce": "e_commerce_time_series_dataset.csv",
-        "walmart": "walmart_cleaned.csv"
+        "walmart": "walmart_cleaned.csv",
+        "inventory": "retail_store_inventory.csv",
+        "sales": "Sales_csv.csv"
     }
     filename = mapping.get(dataset_id)
     if not filename:
