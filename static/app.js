@@ -1505,35 +1505,38 @@ function renderSpotlightChart(data) {
     });
   }
 
-  // 1. Projected Peak (Highest Point)
-  const peakRow = mainRows.reduce((prev, current) => (prev[bestCol] > current[bestCol]) ? prev : current);
-  layout.annotations.push({
-    x: peakRow.ds, y: peakRow[bestCol],
-    xref: 'x', yref: 'y', text: ' PROJECTED PEAK',
-    showarrow: true, arrowhead: 2, ax: 0, ay: -30,
-    font: { color: '#FFD700', size: 11, weight: 'bold' },
-    bgcolor: 'rgba(0,0,0,0.7)', borderpad: 4, bordercolor: '#FFD700', borderwidth: 1
-  });
+  // --- Industrial Spotlight Labels (3.5.3) ---
+  if (mainRows && mainRows.length > 0) {
+    // 1. Projected Peak (Highest Point)
+    const peakRow = mainRows.reduce((prev, current) => ((prev[bestCol] || 0) > (current[bestCol] || 0)) ? prev : current);
+    layout.annotations.push({
+      x: peakRow.ds, y: peakRow[bestCol],
+      xref: 'x', yref: 'y', text: '<b>PROJECTED PEAK</b>',
+      showarrow: true, arrowhead: 2, ax: 0, ay: -40,
+      font: { color: '#FFD600', size: 12 },
+      bgcolor: 'rgba(0,0,0,0.85)', borderpad: 5, bordercolor: '#FFD600', borderwidth: 2
+    });
 
-  // 2. Strategic Dip (Lowest Point)
-  const dipRow = mainRows.reduce((prev, current) => (prev[bestCol] < current[bestCol]) ? prev : current);
-  layout.annotations.push({
-    x: dipRow.ds, y: dipRow[bestCol],
-    xref: 'x', yref: 'y', text: ' STRATEGIC DIP',
-    showarrow: true, arrowhead: 2, ax: 0, ay: 30,
-    font: { color: '#00E5FF', size: 10, weight: 'bold' },
-    bgcolor: 'rgba(0,0,0,0.7)', borderpad: 4, bordercolor: '#00E5FF', borderwidth: 1
-  });
+    // 2. Strategic Dip (Lowest Point)
+    const dipRow = mainRows.reduce((prev, current) => ((prev[bestCol] || 0) < (current[bestCol] || 0)) ? prev : current);
+    layout.annotations.push({
+      x: dipRow.ds, y: dipRow[bestCol],
+      xref: 'x', yref: 'y', text: '<b>STRATEGIC DIP</b>',
+      showarrow: true, arrowhead: 2, ax: 0, ay: 40,
+      font: { color: '#00E5FF', size: 11 },
+      bgcolor: 'rgba(0,0,0,0.85)', borderpad: 5, bordercolor: '#00E5FF', borderwidth: 2
+    });
 
-  // 3. Safety Buffer (Gap to Reorder Point)
-  if (showRPoint) {
-      const avgGap = (rPoint - peakRow[bestCol]).toFixed(0);
-      layout.annotations.push({
-        x: filteredForecast[Math.floor(filteredForecast.length/2)].ds, 
-        y: (peakRow[bestCol] + rPoint) / 2,
-        xref: 'x', yref: 'y', text: `SAFETY BUFFER: ~${avgGap} UNITS`,
-        showarrow: false, font: { color: 'rgba(255,255,255,0.6)', size: 9, style: 'italic' }
-      });
+    // 3. Safety Buffer (Gap to Reorder Point)
+    if (showRPoint && peakRow) {
+        const avgGap = (rPoint - peakRow[bestCol]).toFixed(0);
+        layout.annotations.push({
+          x: filteredForecast[Math.floor(filteredForecast.length/2)].ds, 
+          y: (peakRow[bestCol] + rPoint) / 2,
+          xref: 'x', yref: 'y', text: `SAFETY BUFFER: ~${avgGap} UNITS`,
+          showarrow: false, font: { color: 'rgba(255,255,255,0.7)', size: 10, style: 'italic' }
+        });
+    }
   }
 
   // 4. Zone Labels (Directly on bands)
@@ -1585,11 +1588,16 @@ function renderSpotlightChart(data) {
   spotlightLayout.yaxis.title = ""; 
   spotlightLayout.showlegend = false;
   spotlightLayout.margin = { l: 40, r: 20, t: 40, b: 40 };
-  // Tighten range for high-zoom effect
-  const sVals = sRows.map(r=>r[bestCol]);
-  const sMin = Math.min(...sVals) * 0.8;
-  const sMax = Math.max(...sVals) * 1.2;
-  spotlightLayout.yaxis.range = [sMin, sMax];
+  // Tighten range for high-zoom effect with safety guards
+  const sVals = sRows.map(r => r[bestCol] || 0);
+  let sMin = Math.min(...sVals) * 0.8;
+  let sMax = Math.max(...sVals) * 1.2;
+  
+  // Guard against Infinity/NaN
+  if (!isFinite(sMin) || isNaN(sMin)) sMin = 0;
+  if (!isFinite(sMax) || isNaN(sMax)) sMax = 100;
+  
+  spotlightLayout.yaxis.range = [Math.max(0, sMin), sMax];
 
   Plotly.react("spotlightChart", spotlightTraces, spotlightLayout, { responsive: true, displayModeBar: false });
 }
