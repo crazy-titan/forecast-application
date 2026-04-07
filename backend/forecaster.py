@@ -25,8 +25,17 @@ def build_sf_dataframe(
     selected: Optional[List[str]] = None,
 ) -> pd.DataFrame:
     out = pd.DataFrame()
-    # Handle dates with robust mixed-format parser (3.4.11 Upgrade)
-    out["ds"] = pd.to_datetime(df[date_col], errors="coerce", format="mixed", dayfirst=True)
+
+    def try_parse_dates(series):
+        dates = pd.to_datetime(series, errors="coerce", format="mixed", dayfirst=True)
+        if dates.notna().sum() > (len(series) * 0.5): return dates
+        dates = pd.to_datetime(series, errors="coerce", format="%m/%d/%Y")
+        if dates.notna().sum() > (len(series) * 0.5): return dates
+        dates = pd.to_datetime(series, errors="coerce", format="%Y-%m-%d")
+        if dates.notna().sum() > (len(series) * 0.5): return dates
+        return pd.to_datetime(series, errors="coerce")
+
+    out["ds"] = try_parse_dates(df[date_col])
     
     if df[value_col].dtype == "object":
         val_clean = df[value_col].astype(str).str.replace(r'[^\d\.-]', '', regex=True)
