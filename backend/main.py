@@ -212,12 +212,28 @@ def list_datasets():
     # Return enriched metadata to prevent 'undefined' labels in the UI
     return {"datasets": [
         {
-            "name": "Electricity (5-Year Daily Sample)", 
+            "name": "Electricity (5-Year Daily)", 
             "id": "electricity_5y",
-            "freq": "D",
-            "horizon": 30,
-            "season_length": 7,
-            "description": "5 full years of historical electricity demand data (ideal for testing 'Turbo' speed)."
+            "freq": "D", "horizon": 30, "season_length": 7,
+            "description": "5 full years of high-quality electricity demand data. Perfect for 'Turbo' testing."
+        },
+        {
+            "name": "Crude Oil Price Index", 
+            "id": "crude_oil",
+            "freq": "D", "horizon": 14, "season_length": 5,
+            "description": "Global Crude Oil prices. Test the engine on sensitive financial patterns."
+        },
+        {
+            "name": "E-Commerce Activity", 
+            "id": "ecommerce",
+            "freq": "D", "horizon": 30, "season_length": 7,
+            "description": "Daily snapshot of digital demand. Analyze trends in online retail."
+        },
+        {
+            "name": "Walmart Mini Batch", 
+            "id": "walmart",
+            "freq": "W", "horizon": 12, "season_length": 52,
+            "description": "Condensed Walmart sales history for weekly seasonality analysis."
         }
     ]}
 
@@ -225,20 +241,24 @@ def list_datasets():
 def get_sample_dataset(dataset_id: str, session_id: str = Query(...)):
     # Map ID to filename
     mapping = {
-        "electricity_5y": "electricity_5y.csv"
+        "electricity_5y": "electricity_5y.csv",
+        "crude_oil": "crude-oil-price.csv",
+        "ecommerce": "e_commerce_time_series_dataset.csv",
+        "walmart": "walmart_cleaned.csv"
     }
     filename = mapping.get(dataset_id)
     if not filename:
-        raise HTTPException(404, "Dataset not found.")
+        raise HTTPException(404, "Industrial dataset not found.")
     
-    # Locate sample in root or backend/samples (assuming root for this repo)
+    # Locate sample in root, samples/, or backend/samples/
     path = filename
     if not os.path.exists(path):
-        # Retry in a data/ directory if it exists
-        path = os.path.join("backend", filename)
-    
+        path = os.path.join("samples", filename)
     if not os.path.exists(path):
-        raise HTTPException(404, f"Sample file {filename} missing on server.")
+        path = os.path.join("backend", filename)
+        
+    if not os.path.exists(path):
+        raise HTTPException(404, f"Industrial sample {filename} missing on server.")
         
     # Standard validation/session logic
     sess = get_session(session_id)
