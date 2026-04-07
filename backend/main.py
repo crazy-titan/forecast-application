@@ -250,13 +250,15 @@ def get_sample_dataset(dataset_id: str, session_id: str = Query(...)):
     if not filename:
         raise HTTPException(404, "Industrial dataset not found.")
     
-    # Locate sample in root, samples/, or backend/samples/
-    path = filename
+    # Robust Absolute Path Resolver (3.7.1)
+    # Anchors path to project root (one level above backend/)
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    path = os.path.join(base_dir, "samples", filename)
+
     if not os.path.exists(path):
-        path = os.path.join("samples", filename)
-    if not os.path.exists(path):
-        path = os.path.join("backend", filename)
-        
+        # Fallback to local root if 'samples' subfolder missing
+        path = os.path.join(base_dir, filename)
+    
     if not os.path.exists(path):
         raise HTTPException(404, f"Industrial sample {filename} missing on server.")
         
