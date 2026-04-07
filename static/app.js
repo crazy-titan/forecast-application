@@ -1382,19 +1382,6 @@ function renderSpotlightChart(data) {
   }
   const riskPercent = ((riskCount / mainRows.length) * 100).toFixed(0);
 
-  // Update Insight Badges (Primary Sync)
-  const dBadgeTop = document.getElementById("insightDemand");
-  const wBadgeTop = document.getElementById("insightWindow");
-  const rBadgeTop = document.getElementById("insightRisk");
-  const rPanelTop = document.getElementById("insightRiskBadge");
-
-  if (dBadgeTop) dBadgeTop.textContent = Math.round(avgDemand).toLocaleString();
-  if (wBadgeTop) wBadgeTop.textContent = mainRows.length + " Periods";
-  if (rBadgeTop) rBadgeTop.textContent = riskPercent + "%";
-  
-  if (rPanelTop) {
-    rPanelTop.className = 'insight-badge ' + (riskPercent > 20 ? 'risk-danger' : riskPercent > 0 ? 'risk-warning' : 'risk-safe');
-  }
 
   // --- Chart Building ---
   const traces = [];
@@ -1418,14 +1405,6 @@ function renderSpotlightChart(data) {
     const riskHits = rows.filter(r => (r[hi80] || 0) > rPoint).length;
     const riskPercent = ((riskHits / windowDays) * 100).toFixed(0);
 
-    // Update Dashboard Badges (Spotlight Individual Sync)
-    if (dBadge) dBadge.textContent = `${Number(avgDemand).toLocaleString()}`;
-    if (wBadge) wBadge.textContent = `${windowDays} Periods`;
-    if (rBadge) rBadge.textContent = `${riskPercent}%`;
-    
-    if (rPanel) {
-        rPanel.className = 'insight-badge ' + (riskPercent > 20 ? 'risk-danger' : riskPercent > 0 ? 'risk-warning' : 'risk-safe');
-    }
 
     const xs = rows.map(r => r.ds);
 
@@ -1540,56 +1519,6 @@ function renderSpotlightChart(data) {
   }
 
   // 4. Zone Labels (Directly on bands)
-  const hi95Key = cols.find(c=>c.includes("-hi-95"));
-  const hi80Key = cols.find(c=>c.includes("-hi-80"));
-
-  if (hi95Key) {
-      layout.annotations.push({
-        x: filteredForecast[0].ds, y: filteredForecast[0][hi95Key],
-        xref: 'x', yref: 'y', text: 'VOLATILITY ZONE (95%)',
-        showarrow: false, xanchor: 'left', yanchor: 'bottom',
-        font: { color: 'rgba(157, 78, 221, 0.5)', size: 8 }
-      });
-  }
-
-  if (hi80Key) {
-      layout.annotations.push({
-        x: filteredForecast[0].ds, y: filteredForecast[0][hi80Key],
-        xref: 'x', yref: 'y', text: 'DEMAND RISK ZONE (80%)',
-        showarrow: false, xanchor: 'left', yanchor: 'bottom',
-        font: { color: 'rgba(157, 78, 221, 0.8)', size: 8 }
-      });
-  }
-
-  // --- Spotlight Chart Refit (3.5.2) ---
-  // Create an isolated, future-only trace for the high-zoom spotlight
-  const spotlightTraces = [];
-  const sRows = filteredForecast; // Future only
-  const sXs = sRows.map(r=>r.ds);
-
-  if (lo95 && hi95) {
-    spotlightTraces.push({
-      x: [...sXs, ...sXs.slice().reverse()],
-      y: [...sRows.map(r => r[hi95] ?? null), ...sRows.map(r => r[lo95] ?? null).reverse()],
-      fill: "toself", fillcolor: "rgba(157, 78, 221, 0.1)",
-      line: { color: "transparent" }, name: `Volatility`, showlegend: false, hoverinfo: "skip"
-    });
-  }
-  
-  spotlightTraces.push({
-    x: sXs, y: sRows.map(r => r[bestCol] ?? null),
-    name: `Strategic Future`, type: "scatter", mode: "lines+markers",
-    line: { color: FORECAST_COLOR, width: 4 },
-    marker: { size: 8, color: "white", line: {color: FORECAST_COLOR, width: 2} }
-  });
-
-  const spotlightLayout = JSON.parse(JSON.stringify(layout));
-  spotlightLayout.xaxis.title = "Future Strategic Window";
-  spotlightLayout.yaxis.title = ""; 
-  spotlightLayout.showlegend = false;
-  spotlightLayout.margin = { l: 40, r: 20, t: 40, b: 40 };
-  // Tighten range for high-zoom effect with safety guards
-  const sVals = sRows.map(r => r[bestCol] || 0);
   let sMin = Math.min(...sVals) * 0.8;
   let sMax = Math.max(...sVals) * 1.2;
   
